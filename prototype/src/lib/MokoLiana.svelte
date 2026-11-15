@@ -13,6 +13,7 @@
   import { mokoAnimations } from './moko';
 
   let rail: HTMLDivElement;
+  let spriteTrack: HTMLDivElement;
   let platform: HTMLDivElement;
   let position: HTMLDivElement;
   let sprite: HTMLDivElement;
@@ -53,6 +54,7 @@
     const motion = matchMedia('(prefers-reduced-motion: reduce)');
     let progress = 0;
     let width = 0;
+    let spriteTrackWidth = 0;
     let height = 0;
     let size = 0;
     let restTimer: ReturnType<typeof setTimeout> | undefined;
@@ -124,12 +126,13 @@
       const drop = hasDropped ? Math.min(40, Math.max(0, height - feetY)) : 0;
       position.style.setProperty('--drop', `${drop}px`);
       platform.style.top = `${feetY + drop}px`;
-      const visibleRight = Math.min(width, x + size * idleRight);
+      const visibleRight = Math.min(spriteTrackWidth, x + size * idleRight);
       platform.style.setProperty('--branch-end', `${visibleRight + 12}px`);
     }
 
     function measure() {
       width = rail.clientWidth;
+      spriteTrackWidth = spriteTrack.clientWidth;
       height = rail.clientHeight;
       size = sprite.getBoundingClientRect().width;
       draw();
@@ -214,6 +217,7 @@
 
     const resize = new ResizeObserver(measure);
     resize.observe(rail);
+    resize.observe(spriteTrack);
     resize.observe(sprite);
     motion.addEventListener('change', updateMotion);
     sprite.addEventListener('transitionend', onFallEnd);
@@ -230,12 +234,14 @@
   });
 </script>
 
+<div class="rail" bind:this={rail} aria-hidden="true">
+  <img class="liana" src={asset('astra/Liana.png')} alt="" />
+  <img class="liana mirrored" src={asset('astra/Liana.png')} alt="" />
+</div>
 <div class="platform-track" aria-hidden="true">
   <div class="platform" class:resting={onPlatform} bind:this={platform}></div>
 </div>
-<div class="rail" class:settling={phase !== 'moving'} bind:this={rail} aria-hidden="true">
-  <img class="liana" src={asset('astra/Liana.png')} alt="" />
-  <img class="liana mirrored" src={asset('astra/Liana.png')} alt="" />
+<div class="sprite-track" class:settling={phase !== 'moving'} bind:this={spriteTrack} aria-hidden="true">
   <div class="position" class:resting={onPlatform} bind:this={position}>
     <div class="sprite" class:falling={phase === 'falling'} style:--fall-duration={`${fallDuration}ms`} bind:this={sprite}>
       <Moko
@@ -247,20 +253,26 @@
 </div>
 
 <style>
-  .rail, .platform-track {
+  .rail, .platform-track, .sprite-track {
     position: fixed;
+    z-index: 1;
     inset: max(4.5rem, calc(100% - 45rem), env(safe-area-inset-top)) auto max(1rem, env(safe-area-inset-bottom)) 0;
-    --moko-size: var(--rail-width);
     pointer-events: none;
     overflow: clip;
   }
 
   .rail {
     width: var(--rail-width);
-    container-type: size;
   }
 
-  .rail.settling, .platform-track {
+  .sprite-track, .platform-track {
+    --moko-size: calc(var(--rail-width) * 1.25);
+    width: calc(var(--content-inset) - 4px);
+  }
+
+  .sprite-track { container-type: size; }
+
+  .sprite-track.settling, .platform-track {
     overflow: visible;
     clip-path: inset(0 0 -12px);
   }
@@ -296,11 +308,7 @@
   .sprite.falling { transition: translate var(--fall-duration) cubic-bezier(0.45, 0, 0.85, 0.6); }
 
   @media (min-width: 768px) and (pointer: fine) {
-    .rail, .platform-track { --moko-size: calc(var(--rail-width) * 1.2); }
-  }
-
-  .platform-track {
-    width: calc(var(--content-inset) - 4px);
+    .sprite-track, .platform-track { --moko-size: calc(var(--rail-width) * 1.5); }
   }
 
   .platform {
