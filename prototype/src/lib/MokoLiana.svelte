@@ -10,36 +10,56 @@
   import { asset } from '$app/paths';
   import Moko from './Moko.svelte';
   import { observeScroll } from './ScrollController';
-  import { mokoAnimations } from './moko';
+  import { mokoAnimations, type MokoClip } from './moko';
+  import tree from './arbre-rest-points.json';
+  import { introCamera, introProgress, introTiming } from './intro-timeline';
+
+  let { introActive, introElapsed, treePlane }: {
+    introActive: boolean;
+    introElapsed: number;
+    treePlane?: HTMLDivElement;
+  } = $props();
+  const reveal = $derived(introProgress(introElapsed, introTiming.pullback, introTiming.rejoin));
+
+  type Point = { x: number; y: number };
+  type Perch = (typeof tree.restPoints)[number];
+  type Flight = { from: Point; to: Point; lift: number; start: number; duration: number };
 
   let rail: HTMLDivElement;
-  let spriteTrack: HTMLDivElement;
-  let platform: HTMLDivElement;
   let position: HTMLDivElement;
-  let sprite: HTMLDivElement;
-  let phase = $state<'moving' | 'jumping' | 'falling' | 'landing' | 'idle'>('idle');
-  let jumpTime = $state(0);
-  let attack = $state<MokoAttack>();
-  let attackTime = $state(0);
-  const onPlatform = $derived(phase !== 'moving' && phase !== 'jumping');
-  const returnDuration = 300;
-  const fallDuration = mokoAnimations.jump_down.frames[0].durationMs;
-  const jumpDuration = mokoAnimations.jump_down.animationPlayer.durationMs;
-  let movementClip = $state<'climb_liana' | 'climb_liana_cycle'>('climb_liana');
+  let gripTrack: HTMLDivElement;
+  let ready = $state(false);
+  let perch = $state<Perch>();
+  let clip = $state<MokoClip>('idle');
+  let frameTime = $state<number>();
+  let faceLeft = $state(false);
 
-  // Centre de la liane dans le PNG de 1024 × 1024.
+  const patternId = $props.id();
+  const vineTop = 60;
+  const vineBottom = 950;
+  const vineOverscan = 12;
+  let railWidth = $state(0);
+  let vineScale = $state(0);
+  const tileHeight = $derived((vineBottom - vineTop) * vineScale);
+  const sheetWidth = $derived(1024 * vineScale);
+  const sheetLeft = $derived(railWidth * .31 - sheetWidth / 2);
+
+  // Centre de la liane dans le PNG, avant son miroir vertical.
   const grips = [
     [60, 502], [125, 505], [256, 514], [384, 541], [512, 560],
     [640, 536], [768, 498], [896, 514], [950, 526], [999, 526]
   ];
-  // Main et bord visible du sprite Moko3D, après sa compensation de rendu.
-  const climbRender = mokoAnimations.climb_liana.render;
-  const handX = climbRender.x + climbRender.scale * 200 / 320;
-  const handY = climbRender.y + climbRender.scale * 165 / 320;
-  const handToLeft = climbRender.scale * (200 - 82) / 320;
-  const idleRender = mokoAnimations.idle.render;
-  // Décalage de repos de 12 % et borne alpha droite des quatre frames idle.
-  const idleRight = 0.12 + idleRender.x + idleRender.scale * 245 / 320;
+  const climb = mokoAnimations.climb_liana.render;
+  const handX = climb.x + climb.scale * 200 / 320;
+  const handY = climb.y + climb.scale * 165 / 320;
+  const gripFoot = { x: climb.x + climb.scale * 180 / 320, y: climb.y + climb.scale * 245 / 320 };
+  const idle = mokoAnimations.idle.render;
+  const foot = { x: idle.x + idle.scale * 154 / 320, y: idle.y + idle.scale * 279 / 320 };
+  const margin = tree.constraints.edgeMarginViewportPxSuggested;
+  const navigationJumpDuration = .8;
+  const introArrivalSpeed = 1.3;
+  const mix = (a: number, b: number, t: number) => a + (b - a) * t;
+  const clamp = (n: number, low: number, high: number) => Math.min(high, Math.max(low, n));
 
   function gripX(y: number) {
     const index = grips.findIndex(([height]) => height >= y);
@@ -47,290 +67,454 @@
     if (index < 0) return grips[grips.length - 1][1];
     const [startY, startX] = grips[index - 1];
     const [endY, endX] = grips[index];
-    return startX + (endX - startX) * (y - startY) / (endY - startY);
+    return mix(startX, endX, (y - startY) / (endY - startY));
   }
 
   onMount(() => {
     const motion = matchMedia('(prefers-reduced-motion: reduce)');
     let progress = 0;
-    let width = 0;
-    let spriteTrackWidth = 0;
-    let height = 0;
-    let size = 0;
+    let movementClip: MokoClip = 'climb_liana';
+    let current: Point = { x: 0, y: 0 };
     let restTimer: ReturnType<typeof setTimeout> | undefined;
-    let hasDropped = false;
-    let restDue = false;
-    let returnFrame = 0;
-    let launch = { x: 0, y: 0, time: 0 };
+    let frame = 0;
     let attackFrame = 0;
+    let flight: Flight | undefined;
+    let footerCatch: { target: Point; updated: number } | undefined;
+    let walking: { perch: Perch; start: number; y: number } | undefined;
+    let mode: 'intro' | 'rope' | 'out' | 'return' | 'walk' | 'rest' =
+      introActive && !motion.matches ? 'intro' : 'rope';
+    let introFlight: Flight | undefined;
+    let restDue = false;
 
     try {
       const saved = sessionStorage.getItem(attackSessionKey);
       if (saved === 'kick' || saved === 'clac') nextAttack = saved;
     } catch {
-      // L'alternance reste disponible en mémoire si le stockage est bloqué.
+      // L’alternance reste disponible en mémoire.
+    }
+
+    function rope() {
+      const rect = gripTrack.getBoundingClientRect();
+      const size = position.offsetWidth;
+      const y = Math.max(0, gripTrack.clientHeight - size - 12) * progress;
+      const hand = rect.top + y + size * handY;
+      const textureTop = rail.getBoundingClientRect().top - vineOverscan;
+      const period = tileHeight * 2;
+      const phase = period ? ((hand - textureTop) % period + period) % period : 0;
+      const textureY = vineScale ? vineTop + Math.min(phase, period - phase) / vineScale : vineTop;
+      const x = railWidth * .31 + (gripX(textureY) - 512) * vineScale;
+      // Moko saisit la liane depuis la droite : la main reste sur la texture
+      // même lorsque celle-ci passe tout près du bord gauche.
+      return { x: rect.left + x + size * (handX - gripFoot.x),
+        y: rect.top + y + size * gripFoot.y };
+    }
+
+    function project(point: Point): Point | undefined {
+      if (!treePlane) return;
+      const rect = treePlane.getBoundingClientRect();
+      return { x: rect.left + point.x * rect.width / tree.image.width,
+        y: rect.top + point.y * rect.height / tree.image.height };
+    }
+
+    function paint(point: Point, nextClip: MokoClip, time?: number, left = false, onRope = false, scale = 1) {
+      current = point;
+      clip = nextClip;
+      frameTime = time;
+      faceLeft = left;
+      const size = position.offsetWidth;
+      const anchor = onRope ? gripFoot : foot;
+      position.style.transform = `translate3d(${point.x - size * anchor.x}px, ${point.y - size * anchor.y}px, 0) scale(${scale})`;
+      position.style.transformOrigin = `${anchor.x * 100}% ${anchor.y * 100}%`;
+      ready = size > 0;
+    }
+
+    function clearance(point: Point, halfWidth: number) {
+      const size = position.offsetWidth;
+      const top = document.querySelector('header')?.getBoundingClientRect().bottom ?? 0;
+      return Math.min(point.x - size * halfWidth, document.documentElement.clientWidth - point.x - size * halfWidth,
+        point.y - size * .405 - top, innerHeight - point.y - size * .015);
+    }
+
+    function fits(point: Point) {
+      return clearance(point, .153) >= 0;
+    }
+
+    function arc(route: Flight, t: number, destination = route.to) {
+      const eased = t * t * (3 - 2 * t);
+      return {
+        x: mix(route.from.x, destination.x, eased),
+        y: mix(route.from.y, destination.y, eased) - Math.sin(Math.PI * t) * route.lift
+      };
+    }
+
+    function plan(from: Point, to: Point, start: number, returns: boolean): Flight | undefined {
+      const distance = Math.hypot(to.x - from.x, to.y - from.y);
+      const route = { from, to, start, duration: clamp(330 + distance * 2, 380, 1150) * navigationJumpDuration, lift: 0 };
+      // Monter au-dessus de l’appui avant la descente. Réduire l’arc près du haut de la fenêtre.
+      const lift = clamp(distance * .27 + 20, 24, 130);
+      const halfWidth = returns ? .19 : .175;
+      for (const preferMargin of [true, false]) {
+        for (const ratio of [1, .65, .35, 0]) {
+          route.lift = lift * ratio;
+          let clear = true;
+          for (let step = 0; step <= 24; step++) {
+            const t = step / 24;
+            if ((returns && step === 24) || (!returns && step === 0)) continue;
+            const point = arc(route, t);
+            const edgeAllowance = Math.max(0, mix(clearance(from, halfWidth), clearance(to, halfWidth), t));
+            const required = preferMargin ? Math.min(margin, edgeAllowance) : 0;
+            if (clearance(point, halfWidth) < required - .5) { clear = false; break; }
+          }
+          if (clear) return { ...route };
+        }
+      }
+    }
+
+    function drawRope() {
+      paint(rope(), movementClip, undefined, true, true);
     }
 
     function stopAttack() {
       cancelAnimationFrame(attackFrame);
-      attack = undefined;
+      attackFrame = 0;
+    }
+
+    function idleAt(point: Point) {
+      paint(point, 'idle');
     }
 
     function onClick(event: MouseEvent) {
-      if (event.button !== 0 || event.detail === 0 || phase !== 'idle' || attack) return;
-      const clip = nextAttack;
-      nextAttack = clip === 'kick' ? 'clac' : 'kick';
-      try {
-        sessionStorage.setItem(attackSessionKey, nextAttack);
-      } catch {
-        // Le stockage est facultatif pour jouer l'attaque.
-      }
-
-      attackTime = 0;
-      attack = clip;
+      if (introActive || event.button !== 0 || event.detail === 0 || mode !== 'rest' || attackFrame
+        || (event.target instanceof Element && event.target.closest('a, button, input, select'))) return;
+      const attack = nextAttack;
+      nextAttack = attack === 'kick' ? 'clac' : 'kick';
+      try { sessionStorage.setItem(attackSessionKey, nextAttack); } catch { /* Stockage facultatif. */ }
       const started = performance.now();
-      const duration = mokoAnimations[clip].animationPlayer.durationMs;
+      const duration = mokoAnimations[attack].animationPlayer.durationMs;
       function play(now: number) {
         if (now - started >= duration) {
-          stopAttack();
+          attackFrame = 0;
+          idleAt(current);
           return;
         }
-        attackTime = Math.max(0, now - started);
+        paint(current, attack, now - started);
         attackFrame = requestAnimationFrame(play);
       }
       attackFrame = requestAnimationFrame(play);
     }
 
-    function draw() {
-      const travel = Math.max(0, height - size - 12);
-      const y = travel * progress;
-      const gripY = y + size * handY;
-      // La deuxième moitié réutilise le PNG retourné verticalement.
-      const ropeProgress = height ? 1 - Math.abs(1 - 2 * gripY / height) : 0;
-      const textureY = 14 + ropeProgress * 985;
-      const ropeX = width * 0.31 + (gripX(textureY) - 512) * height / 1970;
-      const x = Math.max(ropeX, size * handToLeft) - size * handX;
-      let spriteX = x;
-      let spriteY = y;
-      if (phase === 'jumping') {
-        const fraction = jumpTime / returnDuration;
-        const eased = fraction * (2 - fraction);
-        spriteX = launch.x + (x - launch.x) * eased;
-        const lift = Math.sin(Math.PI * fraction) * 12;
-        spriteY = Math.max(0, Math.min(height + 12 - size, launch.y + (y - launch.y) * eased - lift));
-      }
-      position.style.transform = `translate3d(${spriteX}px, ${spriteY}px, 0)`;
-      // Le bord inférieur des pieds du sprite idle est à 204/205 de sa boîte.
-      const feetY = y + size * 204 / 205;
-      // La marge basse de 16 px laisse 12 px de course supplémentaire.
-      const drop = hasDropped ? Math.min(40, Math.max(0, height - feetY)) : 0;
-      position.style.setProperty('--drop', `${drop}px`);
-      platform.style.top = `${feetY + drop}px`;
-      const visibleRight = Math.min(spriteTrackWidth, x + size * idleRight);
-      platform.style.setProperty('--branch-end', `${visibleRight + 12}px`);
-    }
-
-    function measure() {
-      width = rail.clientWidth;
-      spriteTrackWidth = spriteTrack.clientWidth;
-      height = rail.clientHeight;
-      size = sprite.getBoundingClientRect().width;
-      draw();
-    }
-
-    function resetRest() {
-      clearTimeout(restTimer);
-      cancelAnimationFrame(returnFrame);
-      restDue = false;
-      phase = 'idle';
-      hasDropped = false;
-    }
-
-    function land() {
-      if (phase !== 'falling') return;
-      clearTimeout(restTimer);
-      phase = 'landing';
-      restTimer = setTimeout(() => { phase = 'idle'; }, jumpDuration - fallDuration);
-    }
-
-    function onFallEnd(event: TransitionEvent) {
-      if (event.target === sprite && event.propertyName === 'translate') land();
-    }
-
     function beginRest() {
-      if (phase === 'jumping') {
-        restDue = true;
-        return;
+      if (mode !== 'rope' || introActive) { restDue = true; return; }
+      restDue = false;
+      const from = rope();
+      let nearest: { perch: Perch; point: Point; score: number } | undefined;
+      for (const candidate of tree.restPoints) {
+        const point = project(candidate.feetPx);
+        if (!point) continue;
+        const score = Math.abs(point.y - from.y);
+        if (!nearest || score < nearest.score) nearest = { perch: candidate, point, score };
       }
-      if (motion.matches) {
-        resetRest();
-        draw();
-        return;
+      if (nearest && fits(nearest.point)) {
+        const route = plan(from, nearest.point, performance.now(), false);
+        if (route) {
+          perch = nearest.perch;
+          if (motion.matches) {
+            mode = 'rest';
+            idleAt(nearest.point);
+          } else {
+            flight = route;
+            mode = 'out';
+            schedule();
+          }
+          return;
+        }
       }
-      hasDropped = true;
-      phase = 'falling';
-      draw();
-      // Repli si le navigateur n'émet pas transitionend.
-      restTimer = setTimeout(land, fallDuration + 80);
+
+      paint(from, 'climb_liana', undefined, true, true);
     }
 
-    function returnToLiana(now: number) {
-      jumpTime = Math.min(returnDuration, now - launch.time);
-      if (jumpTime < returnDuration) {
-        draw();
-        returnFrame = requestAnimationFrame(returnToLiana);
-        return;
-      }
-      phase = 'moving';
-      draw();
-      if (restDue) beginRest();
+    function armRest() {
+      clearTimeout(restTimer);
+      restDue = false;
+      restTimer = setTimeout(beginRest, 250);
     }
 
-    measure();
+    function startReturn(now: number, fromFooter = false) {
+      walking = undefined;
+      perch = undefined;
+
+      const target = rope();
+      footerCatch = fromFooter ? { target, updated: now } : undefined;
+      flight = plan(current, target, now, true);
+      if (!flight) {
+        // Même en cas de changement brusque de cadrage, reprendre depuis la pose visible.
+        flight = { from: current, to: target, start: now, duration: 360 * navigationJumpDuration, lift: 0 };
+      }
+      mode = 'return';
+      schedule();
+    }
+
+    function run(now: number) {
+      frame = 0;
+      if (mode === 'intro') {
+        if (!introActive || motion.matches) {
+          mode = 'rope';
+          drawRope();
+          if (progress > 0) armRest();
+          return;
+        }
+        const { entry, landing, rejoin, end } = introTiming;
+        const elapsed = introElapsed;
+        const branch = project(tree.restPoints[0].feetPx);
+        if (branch && elapsed < landing) {
+          const size = position.offsetWidth;
+          const outside = { x: -size * 1.25 - 10, y: -size * .5 - 30 };
+          const departure = landing - (landing - entry) / introArrivalSpeed;
+          const t = introProgress(elapsed, departure, landing);
+          const arriving = {
+            x: mix(outside.x, branch.x, t * t * (3 - 2 * t)),
+            y: mix(outside.y, branch.y, t ** 1.85)
+          };
+          paint(arriving, 'jump_down', t * 400, false, false, introCamera(elapsed).scale);
+        } else if (branch && elapsed < rejoin) {
+          paint(branch, 'idle', undefined, false, false, introCamera(elapsed).scale);
+        } else if (branch) {
+          const target = rope();
+          introFlight ??= plan(branch, target, rejoin, true) ?? {
+            from: branch, to: target, lift: 24, start: rejoin, duration: end - rejoin
+          };
+          const t = introProgress(elapsed, rejoin, end);
+          const point = arc(introFlight, t, target);
+          // Aligner la main de la dernière image de saut avec celle de la pose de grimpe.
+          const hand = { x: idle.x + idle.scale * 216 / 320, y: idle.y + idle.scale * 214 / 320 };
+          const gripBlend = introProgress(t, .72, 1) * position.offsetWidth;
+          point.x += gripBlend * (hand.x - foot.x + gripFoot.x - handX);
+          point.y += gripBlend * (handY - gripFoot.y - hand.y + foot.y);
+          paint(point, 'jump_up', t * 800, true);
+        }
+        schedule();
+      } else if (mode === 'walk' && walking) {
+        const from = project(walking.perch.feetPx);
+        const to = project(walking.perch.walkToPx);
+        const elapsed = now - walking.start;
+        if (!from || !to || Math.abs(from.y - walking.y) > 24 || !fits(to)) {
+          startReturn(now);
+          return;
+        }
+        const t = clamp(elapsed / 640, 0, 1);
+        paint({ x: mix(from.x, to.x, t), y: mix(from.y, to.y, t) }, 'walk', elapsed, true);
+        if (t === 1) startReturn(now);
+        else schedule();
+      } else if ((mode === 'out' || mode === 'return') && flight) {
+        const t = clamp((now - flight.start) / flight.duration, 0, 1);
+        if (mode === 'out') {
+          if (t === 1) {
+            mode = 'rest';
+            idleAt(flight.to);
+            flight = undefined;
+          } else {
+            paint(arc(flight, t), 'jump_down', t * 400);
+            schedule();
+          }
+        } else if (t === 1) {
+          mode = 'rope';
+          flight = undefined;
+          footerCatch = undefined;
+          drawRope();
+          if (restDue) armRest();
+        } else {
+          const target = rope();
+          let destination = target;
+          if (footerCatch) {
+            // Absorber les grands écarts de scroll, puis rejoindre la prise réelle.
+            const follow = 1 - Math.exp(-(now - footerCatch.updated) / 65);
+            footerCatch.target = {
+              x: mix(footerCatch.target.x, target.x, follow),
+              y: mix(footerCatch.target.y, target.y, follow)
+            };
+            footerCatch.updated = now;
+            const catchUp = introProgress(t, .7, 1);
+            destination = {
+              x: mix(footerCatch.target.x, target.x, catchUp),
+              y: mix(footerCatch.target.y, target.y, catchUp)
+            };
+          }
+          const point = arc(flight, t, destination);
+          paint(point, 'jump_up', t * 800, true);
+          schedule();
+        }
+      }
+    }
+
+    function schedule() {
+      if (!frame) frame = requestAnimationFrame(run);
+    }
+
     const stopScroll = observeScroll((next) => {
       progress = next.progress;
-      if (next.direction !== 'none') {
-        if (attack) stopAttack();
-        movementClip = next.direction === 'up' ? 'climb_liana_cycle' : 'climb_liana';
-        clearTimeout(restTimer);
-        restDue = false;
-        if (motion.matches) {
-          phase = 'moving';
-        } else if (phase !== 'moving' && phase !== 'jumping') {
-          const origin = rail.getBoundingClientRect();
-          const current = sprite.getBoundingClientRect();
-          launch = { x: current.left - origin.left, y: current.top - origin.top, time: performance.now() };
-          jumpTime = 0;
-          phase = 'jumping';
-          returnFrame = requestAnimationFrame(returnToLiana);
+      if (next.direction === 'none') return;
+      movementClip = next.direction === 'up' ? 'climb_liana_cycle' : 'climb_liana';
+      if (introActive || mode === 'intro') return;
+      if (motion.matches) {
+        mode = 'rope';
+
+        perch = undefined;
+        drawRope();
+      } else if (mode === 'rest' && perch) {
+        stopAttack();
+        const now = performance.now();
+        if (perch.id === 'roots_ground') {
+          startReturn(now, true);
+        } else {
+          walking = { perch, start: now, y: current.y };
+          mode = 'walk';
+          schedule();
         }
-        hasDropped = false;
-        restTimer = setTimeout(beginRest, 250);
-      }
-      draw();
+      } else if (mode === 'out') {
+        stopAttack();
+        startReturn(performance.now());
+      } else if (mode === 'rope') drawRope();
+      armRest();
     });
 
-    function updateMotion() {
-      resetRest();
-      draw();
+    function recalculate() {
+      railWidth = rail.clientWidth;
+      // L'échelle de la texture reste celle de l'ancienne liane à l'écran.
+      vineScale = gripTrack.clientHeight / 1970;
+      if (mode === 'intro') return;
+      if (mode === 'rest' && perch) {
+        const point = project(perch.feetPx);
+        if (point && fits(point)) {
+          stopAttack();
+          idleAt(point);
+          return;
+        }
+      }
+      stopAttack();
+      mode = 'rope';
+      perch = undefined;
+
+      drawRope();
+      if (progress > 0) armRest();
     }
 
-    const resize = new ResizeObserver(measure);
+    const resize = new ResizeObserver(recalculate);
     resize.observe(rail);
-    resize.observe(spriteTrack);
-    resize.observe(sprite);
-    motion.addEventListener('change', updateMotion);
-    sprite.addEventListener('transitionend', onFallEnd);
+    resize.observe(gripTrack);
+    // Diagnostic : les repères et Moko relisent la même transformation.
+    let lastFraming = treePlane?.style.getPropertyValue('--diagnostic-framing') ?? '';
+    const framing = new MutationObserver(() => {
+      const nextFraming = treePlane?.style.getPropertyValue('--diagnostic-framing') ?? '';
+      if (lastFraming === nextFraming) return;
+      lastFraming = nextFraming;
+      recalculate();
+    });
+    if (treePlane) framing.observe(treePlane, { attributes: true, attributeFilter: ['style'] });
+    motion.addEventListener('change', recalculate);
     document.addEventListener('click', onClick, true);
+    recalculate();
+    if (mode === 'intro') schedule();
+
     return () => {
-      document.removeEventListener('click', onClick, true);
+      cancelAnimationFrame(frame);
+      clearTimeout(restTimer);
       stopAttack();
-      resetRest();
-      resize.disconnect();
       stopScroll();
-      motion.removeEventListener('change', updateMotion);
-      sprite.removeEventListener('transitionend', onFallEnd);
+      resize.disconnect();
+      framing.disconnect();
+      motion.removeEventListener('change', recalculate);
+      document.removeEventListener('click', onClick, true);
     };
   });
 </script>
 
-<div class="rail" bind:this={rail} aria-hidden="true">
-  <img class="liana" src={asset('astra/Liana.png')} alt="" />
-  <img class="liana mirrored" src={asset('astra/Liana.png')} alt="" />
+<div class="rail" class:unrolling={introActive}
+  style:--reveal-height={reveal < 1 ? `${reveal * 100}dvh` : undefined}
+  bind:this={rail} aria-hidden="true">
+  {#if tileHeight && railWidth}
+    <svg class="liana" style:--overscan={vineOverscan + 'px'}>
+      <defs>
+        <pattern id={patternId} width={railWidth} height={tileHeight * 2} patternUnits="userSpaceOnUse">
+          <!-- Deux coupes du même corps de liane se rejoignent à la même ligne de pixels. -->
+          {#each [false, true] as mirrored}
+            <g transform={mirrored ? 'translate(0 ' + tileHeight * 2 + ') scale(1 -1)' : undefined}>
+              <svg x={sheetLeft} width={sheetWidth} height={tileHeight}
+                viewBox={'0 ' + vineTop + ' 1024 ' + (vineBottom - vineTop)} overflow="hidden">
+                <image href={asset('astra/Liana.png')} width="1024" height="1024" />
+              </svg>
+            </g>
+          {/each}
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill={'url(#' + patternId + ')'} />
+    </svg>
+  {/if}
 </div>
-<div class="platform-track" aria-hidden="true">
-  <div class="platform" class:resting={onPlatform} bind:this={platform}></div>
-</div>
-<div class="sprite-track" class:settling={phase !== 'moving'} bind:this={spriteTrack} aria-hidden="true">
-  <div class="position" class:resting={onPlatform} bind:this={position}>
-    <div class="sprite" class:falling={phase === 'falling'} style:--fall-duration={`${fallDuration}ms`} bind:this={sprite}>
-      <Moko
-        clip={phase === 'moving' ? movementClip : phase === 'jumping' ? 'jump_up' : phase === 'idle' ? attack ?? 'idle' : 'jump_down'}
-        frameTime={attack ? attackTime : phase === 'jumping' ? jumpTime : phase === 'falling' ? 0 : phase === 'landing' ? fallDuration : undefined}
-      />
+<div class="grip-track" bind:this={gripTrack} aria-hidden="true"></div>
+<div class="sprite-track" class:ready aria-hidden="true">
+  <div class="position" bind:this={position}>
+    <div class:face-left={faceLeft}>
+      <Moko {clip} {frameTime} />
     </div>
   </div>
 </div>
 
 <style>
-  .rail, .platform-track, .sprite-track {
+  .rail {
+    position: absolute;
+    inset: 0 auto 0 0;
+    z-index: 2;
+    width: var(--rail-width);
+    overflow: clip;
+    pointer-events: none;
+  }
+
+  .grip-track {
     position: fixed;
-    z-index: 1;
     inset: max(4.5rem, calc(100% - 45rem), env(safe-area-inset-top)) auto max(1rem, env(safe-area-inset-bottom)) 0;
     pointer-events: none;
-    overflow: clip;
   }
 
-  .rail {
-    width: var(--rail-width);
-  }
-
-  .sprite-track, .platform-track {
-    --moko-size: calc(var(--rail-width) * 1.25);
-    width: calc(var(--content-inset) - 4px);
-  }
-
-  .sprite-track { container-type: size; }
-
-  .sprite-track.settling, .platform-track {
-    overflow: visible;
-    clip-path: inset(0 0 -12px);
-  }
+  .rail.unrolling { clip-path: inset(0 0 max(0px, calc(100% - var(--reveal-height, 100%)))); }
 
   .liana {
     position: absolute;
-    left: 31%;
-    top: calc(-50% * 14 / 985);
-    height: calc(50% * 1024 / 985);
-    width: auto;
-    transform: translateX(-50%);
+    top: calc(-1 * var(--overscan));
+    left: 0;
+    width: 100%;
+    height: calc(100% + 2 * var(--overscan));
   }
 
-  .liana.mirrored {
-    top: calc(50% - 50% * 25 / 985);
-    transform: translateX(-50%) scaleY(-1);
+  .sprite-track {
+    --moko-size: calc(var(--rail-width) * 1.25);
+    position: fixed;
+    inset: 0;
+    z-index: 5;
+    pointer-events: none;
+    overflow: clip;
+    visibility: hidden;
   }
+
+  .sprite-track.ready { visibility: visible; }
 
   .position {
     position: absolute;
     top: 0;
     left: 0;
-    width: min(var(--moko-size), max(0px, calc(100cqh - 12px)));
+    width: var(--moko-size);
+    max-width: max(0px, calc(100dvh - max(4.5rem, calc(100dvh - 45rem), env(safe-area-inset-top)) - max(1rem, env(safe-area-inset-bottom)) - 12px));
     aspect-ratio: 1;
-    transform: translateX(-25%);
+    transform: translate(-120%, -120%);
   }
 
-  .sprite {
-    width: 100%;
-  }
-
-  .resting .sprite { translate: 12% var(--drop, 0px); }
-  .sprite.falling { transition: translate var(--fall-duration) cubic-bezier(0.45, 0, 0.85, 0.6); }
+  .position > div { transform-origin: inherit; }
+  .face-left { transform: scaleX(-1); }
 
   @media (min-width: 768px) and (pointer: fine) {
-    .sprite-track, .platform-track { --moko-size: calc(var(--rail-width) * 1.5); }
-  }
-
-  .platform {
-    position: absolute;
-    top: calc(var(--moko-size) * 204 / 205);
-    left: -20px;
-    width: calc(20px + var(--branch-end, var(--rail-width)));
-    height: 12px;
-    background: linear-gradient(#9db660 0 27%, #65543b 27% 48%, #403326 48%);
-    clip-path: polygon(0 0, 94% 0, 100% 22%, 94% 49%, 78% 68%, 50% 77%, 26% 90%, 0 100%);
-    opacity: 0;
-    transform: scaleX(0.25);
-    transform-origin: left;
-    transition: opacity 100ms ease, transform 140ms ease-out;
-  }
-
-  .platform.resting {
-    opacity: 1;
-    transform: scaleX(1);
+    .sprite-track { --moko-size: calc(var(--rail-width) * 1.5); }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .sprite, .platform { transition: none; }
+    .rail.unrolling { clip-path: none; }
   }
 </style>

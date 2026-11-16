@@ -3,10 +3,12 @@ import { climbLianaCycle } from './moko-liana-cycle';
 import { jumpDown } from './moko-jump-down';
 import { jumpUp } from './moko-jump-up';
 import { mokoAttacks } from './moko-attacks';
+import { mokoWalk } from './moko-walk';
 
 export const mokoAnimations = {
   ...exportedAnimations,
   ...mokoAttacks,
+  walk: mokoWalk,
   climb_liana_cycle: climbLianaCycle,
   jump_down: jumpDown,
   jump_up: jumpUp
