@@ -416,6 +416,7 @@
     const resize = new ResizeObserver(recalculate);
     resize.observe(rail);
     resize.observe(gripTrack);
+    resize.observe(position);
     // Diagnostic : les repères et Moko relisent la même transformation.
     let lastFraming = treePlane?.style.getPropertyValue('--diagnostic-framing') ?? '';
     const framing = new MutationObserver(() => {
@@ -502,9 +503,10 @@
 
   .sprite-track {
     --moko-size: calc(var(--rail-width) * 1.25);
+    --moko-responsive-scale: 2;
     position: fixed;
     inset: 0;
-    z-index: 5;
+    z-index: 3;
     pointer-events: none;
     overflow: clip;
     visibility: hidden;
@@ -516,8 +518,8 @@
     position: absolute;
     top: 0;
     left: 0;
-    width: var(--moko-size);
-    max-width: max(0px, calc(100dvh - max(4.5rem, calc(100dvh - 45rem), env(safe-area-inset-top)) - max(1rem, env(safe-area-inset-bottom)) - 12px));
+    width: calc(var(--moko-size) * var(--moko-responsive-scale));
+    max-width: calc(var(--moko-responsive-scale) * max(0px, 100dvh - max(4.5rem, calc(100dvh - 45rem), env(safe-area-inset-top)) - max(1rem, env(safe-area-inset-bottom)) - 12px));
     aspect-ratio: 1;
     transform: translate(-120%, -120%);
   }
@@ -526,7 +528,11 @@
   .face-left { transform: scaleX(-1); }
 
   @media (min-width: 768px) and (pointer: fine) {
-    .sprite-track { --moko-size: calc(var(--rail-width) * 1.5); }
+    .sprite-track {
+      --moko-size: calc(var(--rail-width) * 1.5);
+      --moko-responsive-scale: 1;
+      z-index: 5;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
