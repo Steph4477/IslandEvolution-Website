@@ -10,6 +10,7 @@
     plane?: HTMLDivElement;
   } = $props();
   let diagnostic = $state(false);
+  const blurId = $props.id();
 
   let zoom = $state(100);
   let offsetX = $state(0);
@@ -22,7 +23,7 @@
   const camera = $derived(introCamera(elapsed));
   const zoomOffset = $derived(1 - Math.max(1, camera.scale));
   const cameraTransform = $derived(
-    `translate(calc(${focus.x * zoomOffset * 100}% + min(0px, calc(${camera.pan * 100}vw - ${camera.pan * 62}px - ${focus.x * camera.pan * 100}%))), ${focus.y * zoomOffset * 100}%) scale(${camera.scale})`
+    `translate(calc(${focus.x * zoomOffset * 100}% + min(0px, calc(${camera.pan * 100}vw - ${camera.pan * 62}px - ${focus.x * camera.pan * 100}%))), ${focus.y * zoomOffset * 100}%) scale(max(${camera.scale}, var(--camera-min-scale)))`
   );
 
   onMount(() => {
@@ -31,11 +32,21 @@
 </script>
 
 <div class="scene backdrop" class:active aria-hidden="true">
+  {#if active && camera.blur > 0}
+    <svg class="filter-definitions" width="0" height="0" aria-hidden="true">
+      <defs>
+        <filter id={blurId} x="0" y="0" width="1" height="1" color-interpolation-filters="sRGB">
+          <feGaussianBlur stdDeviation={camera.blur} edgeMode="duplicate" />
+        </filter>
+      </defs>
+    </svg>
+  {/if}
   <div class="plane" bind:this={plane} style:--diagnostic-framing={framing}
     style:--decor-ratio={`${width} / ${height}`}
     style:--intro-camera={active ? cameraTransform : undefined}>
     {#each layers as layer (layer)}
-      <img src={asset(`images/environment/${layer}.webp`)} alt="" {width} {height} data-layer={layer} />
+      <img src={asset(`images/environment/${layer}.webp`)} alt="" {width} {height} data-layer={layer}
+        style:--jungle-filter={layer === 'jungle' && active && camera.blur > 0 ? `url(#${blurId})` : undefined} />
     {/each}
     {#each manifest.restPoints as point, index (point.id)}
       {#if diagnostic}
@@ -90,13 +101,25 @@
     position: absolute;
     top: 0;
     left: 0;
-    width: max(100cqw, calc(100cqh * 1885 / 2048));
+    --plane-width: max(100cqw, calc(100cqh * 1885 / 2048));
+    --camera-min-scale: 0;
+    width: var(--plane-width);
     aspect-ratio: var(--decor-ratio);
     transform-origin: 0 0;
   }
 
   .scene { container-type: size; }
   .plane img { position: absolute; inset: 0; width: 100%; height: 100%; }
+  /* Le nouveau fond est légèrement plus haut à largeur égale. */
+  .plane img[data-layer='jungle'] { object-fit: cover; filter: var(--jungle-filter, none); }
+  .filter-definitions { position: absolute; }
+
+  @supports (scale: calc(1px / 1px)) {
+    .plane {
+      --camera-min-scale: min(1, max(calc(100cqw / var(--plane-width)),
+        calc(100dvh / max(100cqh, calc(100cqw * 2048 / 1885)))));
+    }
+  }
 
   .active .plane { transform: var(--intro-camera, none); }
   .scene:not(.active) .plane { transform: var(--diagnostic-framing, none); }
@@ -142,5 +165,6 @@
 
   @media (prefers-reduced-motion: reduce) {
     .active .plane { transform: none; }
+    .active .plane img[data-layer='jungle'] { filter: none; }
   }
 </style>

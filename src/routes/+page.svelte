@@ -1,5 +1,6 @@
 <script lang="ts">
   import { asset } from '$app/paths';
+  import { description, siteName, siteUrl, socialImage, socialImageAlt, structuredData, title } from '../lib/seo';
   import MokoLiana from '../lib/components/MokoLiana.svelte';
   import CinematicIntro from '../lib/components/CinematicIntro.svelte';
   import JungleBackdrop from '../lib/components/JungleBackdrop.svelte';
@@ -16,8 +17,33 @@
 </script>
 
 <svelte:head>
-  <title>Island Evolution — Moko</title>
-  <meta name="description" content="Prototype interactif du site Island Evolution." />
+  <title>{title}</title>
+  <meta name="description" content={description} />
+  <meta name="robots" content="index, follow" />
+  <link rel="icon" type="image/png" sizes="16x16" href={asset('icons/favicon-16.png')} />
+  <link rel="icon" type="image/png" sizes="32x32" href={asset('icons/favicon-32.png')} />
+  <link rel="icon" type="image/png" sizes="48x48" href={asset('icons/favicon-48.png')} />
+  <link rel="apple-touch-icon" sizes="180x180" href={asset('icons/apple-touch-icon.png')} />
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content={siteName} />
+  <meta property="og:locale" content="fr_FR" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content={title} />
+  <meta name="twitter:description" content={description} />
+  {#if siteUrl && socialImage}
+    <link rel="canonical" href={siteUrl.href} />
+    <meta property="og:url" content={siteUrl.href} />
+    <meta property="og:image" content={socialImage} />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={socialImageAlt} />
+    <meta name="twitter:image" content={socialImage} />
+    <meta name="twitter:image:alt" content={socialImageAlt} />
+  {/if}
+  {@html structuredData}
 </svelte:head>
 
 <div class="page">

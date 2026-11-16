@@ -56,8 +56,10 @@
   const idle = mokoAnimations.idle.render;
   const foot = { x: idle.x + idle.scale * 154 / 320, y: idle.y + idle.scale * 279 / 320 };
   const margin = tree.constraints.edgeMarginViewportPxSuggested;
+  const JUMP_SPEED_MULTIPLIER = 1.5;
   const navigationJumpDuration = .8;
-  const introArrivalSpeed = 1.3;
+  const introArrivalPoseDuration = (introTiming.landing - introTiming.entry) / 1.3;
+  const introArrivalDuration = introArrivalPoseDuration / 1.4;
   const mix = (a: number, b: number, t: number) => a + (b - a) * t;
   const clamp = (n: number, low: number, high: number) => Math.min(high, Math.max(low, n));
 
@@ -149,7 +151,8 @@
 
     function plan(from: Point, to: Point, start: number, returns: boolean): Flight | undefined {
       const distance = Math.hypot(to.x - from.x, to.y - from.y);
-      const route = { from, to, start, duration: clamp(330 + distance * 2, 380, 1150) * navigationJumpDuration, lift: 0 };
+      const duration = clamp(330 + distance * 2, 380, 1150) * navigationJumpDuration;
+      const route = { from, to, start, duration: duration / JUMP_SPEED_MULTIPLIER, lift: 0 };
       // Monter au-dessus de l’appui avant la descente. Réduire l’arc près du haut de la fenêtre.
       const lift = clamp(distance * .27 + 20, 24, 130);
       const halfWidth = returns ? .19 : .175;
@@ -248,7 +251,10 @@
       flight = plan(current, target, now, true);
       if (!flight) {
         // Même en cas de changement brusque de cadrage, reprendre depuis la pose visible.
-        flight = { from: current, to: target, start: now, duration: 360 * navigationJumpDuration, lift: 0 };
+        flight = {
+          from: current, to: target, start: now,
+          duration: 360 * navigationJumpDuration / JUMP_SPEED_MULTIPLIER, lift: 0
+        };
       }
       mode = 'return';
       schedule();
@@ -263,34 +269,43 @@
           if (progress > 0) armRest();
           return;
         }
-        const { entry, landing, rejoin, end } = introTiming;
+        const { landing, rejoin, end } = introTiming;
         const elapsed = introElapsed;
         const branch = project(tree.restPoints[0].feetPx);
         if (branch && elapsed < landing) {
           const size = position.offsetWidth;
           const outside = { x: -size * 1.25 - 10, y: -size * .5 - 30 };
-          const departure = landing - (landing - entry) / introArrivalSpeed;
+          const departure = landing - introArrivalDuration / JUMP_SPEED_MULTIPLIER;
           const t = introProgress(elapsed, departure, landing);
           const arriving = {
             x: mix(outside.x, branch.x, t * t * (3 - 2 * t)),
-            y: mix(outside.y, branch.y, t ** 1.85)
+            y: mix(outside.y, branch.y, t ** 2.1)
           };
-          paint(arriving, 'jump_down', t * 400, false, false, introCamera(elapsed).scale);
+          // Conserver le même instant relatif de changement de pose dans le bond.
+          const pose = t * introArrivalDuration / introArrivalPoseDuration;
+          paint(arriving, 'jump_down', pose * mokoAnimations.jump_down.animationPlayer.durationMs,
+            false, false, introCamera(elapsed).scale);
         } else if (branch && elapsed < rejoin) {
           paint(branch, 'idle', undefined, false, false, introCamera(elapsed).scale);
         } else if (branch) {
+          const catchTime = rejoin + (end - rejoin) / JUMP_SPEED_MULTIPLIER;
+          const t = introProgress(elapsed, rejoin, catchTime);
+          if (t === 1) {
+            drawRope();
+            schedule();
+            return;
+          }
           const target = rope();
           introFlight ??= plan(branch, target, rejoin, true) ?? {
-            from: branch, to: target, lift: 24, start: rejoin, duration: end - rejoin
+            from: branch, to: target, lift: 24, start: rejoin, duration: catchTime - rejoin
           };
-          const t = introProgress(elapsed, rejoin, end);
           const point = arc(introFlight, t, target);
           // Aligner la main de la dernière image de saut avec celle de la pose de grimpe.
           const hand = { x: idle.x + idle.scale * 216 / 320, y: idle.y + idle.scale * 214 / 320 };
           const gripBlend = introProgress(t, .72, 1) * position.offsetWidth;
           point.x += gripBlend * (hand.x - foot.x + gripFoot.x - handX);
           point.y += gripBlend * (handY - gripFoot.y - hand.y + foot.y);
-          paint(point, 'jump_up', t * 800, true);
+          paint(point, 'jump_up', t * mokoAnimations.jump_up.animationPlayer.durationMs, true);
         }
         schedule();
       } else if (mode === 'walk' && walking) {
@@ -313,7 +328,7 @@
             idleAt(flight.to);
             flight = undefined;
           } else {
-            paint(arc(flight, t), 'jump_down', t * 400);
+            paint(arc(flight, t), 'jump_down', t * mokoAnimations.jump_down.animationPlayer.durationMs);
             schedule();
           }
         } else if (t === 1) {
@@ -340,7 +355,7 @@
             };
           }
           const point = arc(flight, t, destination);
-          paint(point, 'jump_up', t * 800, true);
+          paint(point, 'jump_up', t * mokoAnimations.jump_up.animationPlayer.durationMs, true);
           schedule();
         }
       }
