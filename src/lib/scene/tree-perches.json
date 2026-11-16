@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "scene": "Island Evolution — arbre de Moko",
+  "image": {
+    "width": 1885,
+    "height": 2048,
+    "coordinateSystem": "top-left, original-image pixels"
+  },
+  "status": "REPERES_VALIDES",
+  "layerOrder": [
+    "jungle.webp",
+    "ground.webp",
+    "tree.webp",
+    "liana.png",
+    "animated-Moko"
+  ],
+  "restPoints": [
+    {
+      "id": "canopy_branch",
+      "label": "Grande branche de la canopée",
+      "feetPx": {
+        "x": 107,
+        "y": 319
+      },
+      "feetNorm": {
+        "x": 0.05676392572944297,
+        "y": 0.15576171875
+      },
+      "status": "REFERENCE_VISUELLE",
+      "referenceFeetPx": {
+        "x": 113,
+        "y": 338
+      },
+      "walkToPx": {
+        "x": 92,
+        "y": 315
+      },
+      "previousFeetPx": {
+        "x": 294,
+        "y": 314
+      }
+    },
+    {
+      "id": "upper_fork",
+      "label": "Fourche supérieure",
+      "feetPx": {
+        "x": 117,
+        "y": 599
+      },
+      "feetNorm": {
+        "x": 0.06206896551724138,
+        "y": 0.29248046875
+      },
+      "status": "REFERENCE_VISUELLE",
+      "referenceFeetPx": {
+        "x": 124,
+        "y": 635
+      },
+      "walkToPx": {
+        "x": 105,
+        "y": 597
+      },
+      "previousFeetPx": {
+        "x": 132,
+        "y": 632
+      }
+    },
+    {
+      "id": "moss_ledge",
+      "label": "Avancée moussue",
+      "feetPx": {
+        "x": 92,
+        "y": 802
+      },
+      "feetNorm": {
+        "x": 0.04880636604774536,
+        "y": 0.3916015625
+      },
+      "status": "REFERENCE_VISUELLE",
+      "referenceFeetPx": {
+        "x": 98,
+        "y": 851
+      },
+      "walkToPx": {
+        "x": 83,
+        "y": 804
+      },
+      "previousFeetPx": {
+        "x": 105,
+        "y": 836
+      }
+    },
+    {
+      "id": "lower_knot",
+      "label": "Nodosité et branche basse",
+      "feetPx": {
+        "x": 107,
+        "y": 1177
+      },
+      "feetNorm": {
+        "x": 0.05676392572944297,
+        "y": 0.57470703125
+      },
+      "status": "REFERENCE_VISUELLE",
+      "referenceFeetPx": {
+        "x": 113,
+        "y": 1248
+      },
+      "walkToPx": {
+        "x": 95,
+        "y": 1182
+      },
+      "previousFeetPx": {
+        "x": 186,
+        "y": 1236
+      }
+    },
+    {
+      "id": "roots_ground",
+      "label": "Racines et sol",
+      "feetPx": {
+        "x": 125,
+        "y": 1732
+      },
+      "feetNorm": {
+        "x": 0.06631299734748011,
+        "y": 0.845703125
+      },
+      "status": "REFERENCE_VISUELLE",
+      "referenceFeetPx": {
+        "x": 133,
+        "y": 1837
+      },
+      "walkToPx": {
+        "x": 113,
+        "y": 1720
+      },
+      "previousFeetPx": {
+        "x": 181,
+        "y": 1847
+      }
+    }
+  ],
+  "constraints": {
+    "edgeMarginViewportPxSuggested": 20,
+    "useViewportCheck": true,
+    "useActualRenderScale": true,
+    "doNotTeleport": true,
+    "noRestIfNotReachable": true,
+    "doNotOverrideScrollPosition": true,
+    "onlyRestWhenBranchVisible": true
+  },
+  "notes": [
+    "Les appuis officiels sont relevés entre les semelles des personnages dans position_reference.jpg, puis ramenés au canevas commun V3.",
+    "feetPx et walkToPx utilisent le canevas commun 1885 × 2048. previousFeetPx conserve la calibration historique du canevas 724 × 2172."
+  ],
+  "reference": {
+    "file": "position_reference.jpg",
+    "width": 2000,
+    "height": 2172
+  }
+}

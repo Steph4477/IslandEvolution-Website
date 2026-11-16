@@ -1,5 +1,6 @@
 node_modules/
 .svelte-kit/
+.vite/
 build/
 .vercel/
 .netlify/
@@ -8,5 +9,3 @@ build/
 !.env.example
 BACKUPS/
 *.bak
-ASSETS_ASTRA.zip
-ASSETS_ASTRA/
