@@ -8,18 +8,49 @@ export const translations = {
     language: 'Langue', showMoko: 'Afficher Moko', hideMoko: 'Masquer Moko', skip: 'Passer l’intro',
     intro: "Une île mystérieuse. Une jungle qui évolue. Moko face à l'inconnu.",
     skipToContent: 'Aller au contenu',
-    descend: 'Descendre dans la jungle',
+    joinBeta: 'Rejoindre la bêta',
+    betaShort: 'Bêta',
+    betaDetails: '20 places · Android · Google Play',
+    betaStatus: 'Inscriptions à venir',
     jungle: 'Sous la canopée',
-    galleryIntro: 'Explorez la jungle avec Moko. Ces captures donnent un aperçu des décors et des rencontres du jeu.',
+    canopyIntroStart: 'Découvrez',
+    canopyIntroEnd: "un jeu d'action, d'aventure et de plateformes où vous incarnez Moko.",
+    canopyAction: 'Explorez, combattez et débloquez de nouvelles capacités',
+    canopyEnemies: 'face à des ennemis qui évoluent selon vos performances.',
+    canopyChallenge: "Trois difficultés, un endgame évolutif. Jusqu'où survivrez-vous ?",
     jungleAlt: 'Moko explore la jungle du jeu', jungleCaption: 'Exploration de la jungle',
     templeAlt: 'Le temple du jeu au coucher du soleil', templeCaption: 'Le temple au crépuscule',
-    videos: 'Vidéos de gameplay à venir.',
+    gallery: {
+      viewer: 'Visionneuse des captures', open: 'Agrandir la capture', close: 'Fermer',
+      previous: 'Capture précédente', next: 'Capture suivante'
+    },
+    adventure: {
+      title: "L'aventure commence",
+      tagline: 'Tout commence par un naufrage.',
+      description: 'Échoué sur une île mystérieuse, Moko doit désormais survivre.',
+      play: 'Lire la cinématique', unavailable: 'Le lecteur est indisponible.'
+    },
+    difficulties: {
+      title: 'Trois difficultés. Une seule île.',
+      intro: 'Trois difficultés à débloquer. Une jungle toujours plus impitoyable.',
+      modes: [
+        { name: 'Explorateur', alt: 'Rune Explorateur : spirale verte', description: "L'aventure commence ici. Découvrez l'île et ses premiers dangers." },
+        { name: 'Survivant', alt: 'Rune Survivant : soleil jaune', description: 'La jungle se fait plus hostile. Chaque erreur peut coûter cher.' },
+        { name: 'Roi de l’île', alt: 'Rune Roi de l’île : couronne rouge', description: "Le défi ultime. Seuls les plus déterminés iront jusqu'au bout." }
+      ],
+      teaser: 'Teaser des difficultés', play: 'Lire le teaser des difficultés'
+    },
+    endgame: {
+      title: 'Au-delà du défi',
+      tagline: "Jusqu'où oserez-vous aller ?",
+      description: 'Même après avoir affronté le Roi de l’île, bien des secrets restent à découvrir…',
+      play: 'Lire la vidéo « Au-delà du défi »'
+    },
     island: 'Au cœur de l’île',
     topics: [
       ['Difficultés', 'Les niveaux de difficulté et leurs différences seront présentés ici.'],
       ['Compétences de Moko', 'Double saut, Coco Fire et attaques Clac et Kick.'],
-      ['Évolution', 'Découvrez comment Moko évolue au fil de l’aventure.'],
-      ['Mode Endless', 'Les règles et les objectifs du mode seront détaillés ici.']
+      ['Évolution', 'Découvrez comment Moko évolue au fil de l’aventure.']
     ],
     beta: 'Bêta Android', betaInfo: 'Les informations d’accès et de participation seront publiées ici.',
     footer: 'Liens de pied de page', screenshots: 'Captures du jeu', top: 'Retour à la canopée',
@@ -33,18 +64,49 @@ export const translations = {
     language: 'Language', showMoko: 'Show Moko', hideMoko: 'Hide Moko', skip: 'Skip intro',
     intro: 'A mysterious island. An evolving jungle. Moko faces the unknown.',
     skipToContent: 'Skip to content',
-    descend: 'Head down into the jungle',
-    jungle: 'Beneath the canopy',
-    galleryIntro: 'Explore the jungle with Moko. These screenshots show some of the places and encounters in the game.',
+    joinBeta: 'Join the Beta',
+    betaShort: 'Beta',
+    betaDetails: '20 spots · Android · Google Play',
+    betaStatus: 'Registration coming soon',
+    jungle: 'Beneath the Canopy',
+    canopyIntroStart: 'Discover',
+    canopyIntroEnd: 'an action-adventure platformer where you play as Moko.',
+    canopyAction: 'Explore, fight, and unlock new abilities',
+    canopyEnemies: 'as you face enemies that evolve based on your performance.',
+    canopyChallenge: 'Three difficulty levels, an evolving endgame. How long can you survive?',
     jungleAlt: 'Moko explores the jungle in the game', jungleCaption: 'Exploring the jungle',
     templeAlt: 'The temple in the game at sunset', templeCaption: 'The temple at dusk',
-    videos: 'Gameplay videos coming soon.',
+    gallery: {
+      viewer: 'Screenshot viewer', open: 'Enlarge screenshot', close: 'Close',
+      previous: 'Previous screenshot', next: 'Next screenshot'
+    },
+    adventure: {
+      title: 'The Adventure Begins',
+      tagline: 'It all begins with a shipwreck.',
+      description: 'Stranded on a mysterious island, Moko must now survive.',
+      play: 'Play the cinematic', unavailable: 'The video player is unavailable.'
+    },
+    difficulties: {
+      title: 'Three Difficulties. One Island.',
+      intro: 'Three difficulty levels to unlock. An increasingly unforgiving jungle.',
+      modes: [
+        { name: 'Explorer', alt: 'Explorer rune: green spiral', description: 'Your adventure begins here. Discover the island and its first dangers.' },
+        { name: 'Survivor', alt: 'Survivor rune: yellow sun', description: 'The jungle grows more hostile. Every mistake could cost you dearly.' },
+        { name: 'King', alt: 'King rune: red crown', description: 'The ultimate challenge. Only the most determined will make it to the end.' }
+      ],
+      teaser: 'Difficulty teaser', play: 'Play the difficulty teaser'
+    },
+    endgame: {
+      title: 'Beyond the Challenge',
+      tagline: 'How far will you dare to go?',
+      description: 'Even after the King challenge, many secrets remain to be discovered…',
+      play: 'Play the Beyond the Challenge video'
+    },
     island: 'At the heart of the island',
     topics: [
       ['Difficulty', 'Details on the difficulty levels and how they differ will be shared here.'],
       ['Moko’s abilities', 'Double jump, Fire Coco, and the Clac and Kick attacks.'],
-      ['Evolution', 'Discover how Moko evolves throughout the adventure.'],
-      ['Endless mode', 'Rules and objectives for this mode will be shared here.']
+      ['Evolution', 'Discover how Moko evolves throughout the adventure.']
     ],
     beta: 'Android beta', betaInfo: 'Details on how to access and take part in the beta will be posted here.',
     footer: 'Footer links', screenshots: 'Gameplay screenshots', top: 'Back to the canopy',
