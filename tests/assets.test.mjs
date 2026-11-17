@@ -11,7 +11,7 @@ const expected = {
 };
 
 test('public image paths have the expected spelling and case', () => {
-  assert.deepEqual(readdirSync(images).sort(), [...Object.keys(expected), 'moko-title.png'].sort());
+  assert.deepEqual(readdirSync(images).sort(), [...Object.keys(expected), 'moko-title.png', 'moko-title.webp'].sort());
   for (const [folder, files] of Object.entries(expected)) {
     assert.deepEqual(readdirSync(new URL(folder + '/', images)).sort(), files);
   }

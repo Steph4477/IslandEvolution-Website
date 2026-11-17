@@ -5,8 +5,9 @@ export const languageKey = 'island-evolution:language';
 
 export const translations = {
   fr: {
-    language: 'Langue', moko: 'Afficher Moko', skip: 'Passer l’intro',
-    intro: 'Un jeu de plateforme 2D. Suivez Moko de la canopée jusqu’au sol de la jungle.',
+    language: 'Langue', showMoko: 'Afficher Moko', hideMoko: 'Masquer Moko', skip: 'Passer l’intro',
+    intro: "Une île mystérieuse. Une jungle qui évolue. Moko face à l'inconnu.",
+    skipToContent: 'Aller au contenu',
     descend: 'Descendre dans la jungle',
     jungle: 'Sous la canopée',
     galleryIntro: 'Explorez la jungle avec Moko. Ces captures donnent un aperçu des décors et des rencontres du jeu.',
@@ -29,8 +30,9 @@ export const translations = {
     }
   },
   en: {
-    language: 'Language', moko: 'Show Moko', skip: 'Skip intro',
-    intro: 'A 2D platformer. Follow Moko from the jungle canopy to the forest floor.',
+    language: 'Language', showMoko: 'Show Moko', hideMoko: 'Hide Moko', skip: 'Skip intro',
+    intro: 'A mysterious island. An evolving jungle. Moko faces the unknown.',
+    skipToContent: 'Skip to content',
     descend: 'Head down into the jungle',
     jungle: 'Beneath the canopy',
     galleryIntro: 'Explore the jungle with Moko. These screenshots show some of the places and encounters in the game.',

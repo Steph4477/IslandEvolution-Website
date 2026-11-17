@@ -55,7 +55,7 @@
     position: absolute;
     z-index: 1;
     right: clamp(1rem, 4vw, 3rem);
-    top: 1rem;
+    top: calc(var(--controls-height) + 1rem);
     min-height: 44px;
     padding: .5rem .9rem;
     border: 1px solid #c9d89f;

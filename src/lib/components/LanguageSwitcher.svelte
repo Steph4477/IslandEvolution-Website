@@ -28,18 +28,13 @@
 </div>
 
 <style>
-  .languages { display: flex; }
+  .languages { display: flex; gap: .25rem; }
   button {
     display: grid;
     place-items: center;
     width: 44px;
     height: 44px;
     padding: 0;
-    border: 0;
-    border-block-end: 2px solid transparent;
-    background: transparent;
-    cursor: pointer;
   }
-  button[aria-pressed='true'] { border-block-end-color: #c9d89f; }
   svg { width: 1.25rem; border-radius: 2px; }
 </style>
