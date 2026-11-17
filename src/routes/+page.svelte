@@ -166,7 +166,7 @@
         {/each}
       </ul>
       <div class="reading adventure-video">
-        <AdventureVideo id="drSuyT7rMEw" title={copy.difficulties.teaser}
+        <AdventureVideo id="je1Ffg7VBxA" title={copy.difficulties.teaser}
           poster={asset('video/difficulties.jpg')} labels={{ ...copy.adventure, play: copy.difficulties.play }} />
       </div>
     </section>
