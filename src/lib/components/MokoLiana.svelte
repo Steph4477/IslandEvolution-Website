@@ -9,20 +9,27 @@
   import { onMount } from 'svelte';
   import { asset } from '$app/paths';
   import Moko from './Moko.svelte';
+  import { acceptsSkill, cocoShotTiming, jumpDuration, skillsJumpLift, skillsJumpPeak, type Skill, type SkillsState } from '../scene/skills-actions';
+  import { cocoTrajectory } from '../scene/coco-trajectory';
   import { observeScroll } from '../scene/scroll-controller';
   import { skillsGround, wantsSkillsGround } from '../scene/skills-transfer';
   import { mokoAnimations, type MokoClip } from '../moko/moko';
   import tree from '../scene/tree-perches.json';
   import { introCamera, introProgress, introTiming } from '../scene/intro-timeline';
 
-  let { introActive, introElapsed, treePlane }: {
+  let {
+    introActive, introElapsed, treePlane,
+    skillsState = $bindable<SkillsState>('unavailable')
+  }: {
     introActive: boolean;
     introElapsed: number;
     treePlane?: HTMLDivElement;
+    skillsState?: SkillsState;
   } = $props();
   const reveal = $derived(introProgress(introElapsed, introTiming.pullback, introTiming.rejoin));
 
   type Point = { x: number; y: number };
+  type Coco = { id: number; x: number; y: number; size: number; unitsToCss: number };
   type Perch = (typeof tree.restPoints)[number];
   type Flight = { from: Point; to: Point; lift: number; start: number; duration: number };
 
@@ -34,7 +41,40 @@
   let clip = $state<MokoClip>('idle');
   let frameTime = $state<number>();
   let faceLeft = $state(false);
+  let coconuts = $state<Coco[]>([]);
+  let requestSkill: ((skill: Skill) => void) | undefined;
 
+  export function playSkill(skill: Skill) {
+    requestSkill?.(skill);
+  }
+
+  function removeCoco(id: number) {
+    coconuts = coconuts.filter((coco) => coco.id !== id);
+  }
+
+  function flyCoco(node: HTMLImageElement, coco: Coco) {
+    const motion = matchMedia('(prefers-reduced-motion: reduce)');
+    const frames = cocoTrajectory(coco.unitsToCss,
+      document.documentElement.clientWidth - coco.x + coco.size / 2 + 1,
+      innerHeight - coco.y + coco.size / 2 + 1);
+    const duration = frames[frames.length - 1].time;
+    const animation = motion.matches
+      ? node.animate([{ opacity: 1 }, { opacity: 1 }], 200)
+      : node.animate(frames.map(({ x, y, time }) => ({
+          transform: 'translate3d(' + x + 'px,' + y + 'px,0)',
+          offset: duration ? time / duration : 0
+        })), { duration, fill: 'forwards' });
+    const remove = () => removeCoco(coco.id);
+    animation.onfinish = remove;
+    motion.addEventListener('change', remove);
+    return { destroy() {
+      animation.onfinish = null;
+      animation.cancel();
+      motion.removeEventListener('change', remove);
+    } };
+  }
+
+  const cocoSprite = asset('skills/coconut.png');
   const patternId = $props.id();
   const vineTop = 60;
   const vineBottom = 950;
@@ -56,6 +96,7 @@
   const gripFoot = { x: climb.x + climb.scale * 180 / 320, y: climb.y + climb.scale * 245 / 320 };
   const idle = mokoAnimations.idle.render;
   const foot = { x: idle.x + idle.scale * 154 / 320, y: idle.y + idle.scale * 279 / 320 };
+  const desktopScale = 1.5;
   const margin = tree.constraints.edgeMarginViewportPxSuggested;
   const JUMP_SPEED_MULTIPLIER = 1.5;
   const navigationJumpDuration = .8;
@@ -75,6 +116,7 @@
 
   onMount(() => {
     const motion = matchMedia('(prefers-reduced-motion: reduce)');
+    const desktop = matchMedia('(min-width: 1000px) and (pointer: fine)');
     let progress = 0;
     let movementClip: MokoClip = 'climb_liana';
     let current: Point = { x: 0, y: 0 };
@@ -88,6 +130,119 @@
       introActive && !motion.matches ? 'intro' : 'rope';
     let introFlight: Flight | undefined;
     let restDue = false;
+    let skillStart = 0;
+    let lootedThisVisit = false;
+    let jumpStart: number | undefined;
+    let queuedCoco: { time: number; airborne: boolean } | undefined;
+    let nextCocoId = 0;
+    let cocoImage: HTMLImageElement | undefined;
+
+    function jumpPoint(landing: Point, size: number, progress: number) {
+      if (motion.matches) return landing;
+      const apex = skillsJumpPeak(desktop.matches ? size / desktopScale : size, landing.y - size * .44 - 80);
+      return { x: landing.x, y: landing.y - apex * skillsJumpLift(progress) };
+    }
+
+    function releaseCoco(point: Point, spriteSize: number, airborne: boolean) {
+      const size = Math.max(14, spriteSize * .09);
+      // Coordonnées de la main sur les poses de lancer : shoot 5 et jump_shoot 4.
+      const x = point.x + spriteSize * idle.scale * ((airborne ? 237 : 231) - 154) / 320;
+      const y = point.y + spriteSize * idle.scale * ((airborne ? 190 : 206) - 279) / 320;
+      // Godot applique 1,2 sur Node2D, puis 0,5 sur le sprite de Moko.
+      const unitsToCss = spriteSize * idle.scale / (320 * 1.2 * .5);
+      coconuts = [...coconuts, { id: ++nextCocoId, x, y, size, unitsToCss }];
+    }
+
+    function endSkills() {
+      skillsState = 'unavailable';
+      jumpStart = undefined;
+      queuedCoco = undefined;
+      coconuts = [];
+    }
+
+    function landInSkills(point: Point, now: number) {
+      if (!cocoImage) {
+        cocoImage = new Image();
+        cocoImage.src = cocoSprite;
+      }
+      idleAt(point);
+      skillsState = 'idle';
+      if (!lootedThisVisit) {
+        lootedThisVisit = true;
+        if (!motion.matches) {
+          skillsState = 'loot';
+          skillStart = now;
+          paint(point, 'loot_skill', 0);
+          schedule();
+        }
+      }
+    }
+
+    function catchRopeAfterSkills() {
+      lootedThisVisit = false;
+      drawRope();
+    }
+
+    requestSkill = (skill) => {
+      if (mode !== 'skills-idle' || !acceptsSkill(skillsState, skill)) return;
+      const now = performance.now();
+      const landing = project(skillsGround);
+      if (!landing || !fits(landing)) return;
+
+      if (skill === 'jump') {
+        jumpStart = now;
+        skillsState = 'jump';
+      } else {
+        if (jumpStart !== undefined && now - jumpStart >= jumpDuration) return;
+        const timing = cocoShotTiming(now, jumpStart);
+        skillStart = timing.animationStart;
+        queuedCoco = { time: timing.releaseAt, airborne: jumpStart !== undefined };
+        skillsState = jumpStart === undefined ? 'shoot' : 'jump_shoot';
+      }
+      schedule();
+    };
+
+    function updateSkills(now: number, landing: Point) {
+      const state = skillsState;
+      const elapsed = now - skillStart;
+      const size = position.offsetWidth;
+      if (queuedCoco && now >= queuedCoco.time) {
+        const progress = jumpStart === undefined ? 0 : clamp((queuedCoco.time - jumpStart) / jumpDuration, 0, 1);
+        releaseCoco(jumpPoint(landing, size, progress), size, queuedCoco.airborne);
+        queuedCoco = undefined;
+      }
+      if (jumpStart !== undefined) {
+        const progress = clamp((now - jumpStart) / jumpDuration, 0, 1);
+        if (progress < 1) {
+          const point = jumpPoint(landing, size, progress);
+          const pose = progress < .5 ? 'jump_up' : 'jump_down';
+          const poseTime = (progress < .5 ? progress : progress - .5) * jumpDuration;
+          if (state === 'jump_shoot' && elapsed < mokoAnimations.jump_shoot.animationPlayer.durationMs) {
+            paint(point, 'jump_shoot', motion.matches ? 400 : elapsed);
+          } else {
+            skillsState = 'jump';
+            paint(point, motion.matches ? 'jump_up' : pose, motion.matches ? 0 : poseTime);
+          }
+          schedule();
+          return;
+        }
+        jumpStart = undefined;
+      } else if (state === 'loot' || state === 'shoot') {
+        const skillClip = state === 'loot' ? 'loot_skill' : 'shoot';
+        if (!motion.matches && elapsed < mokoAnimations[skillClip].animationPlayer.durationMs) {
+          paint(landing, skillClip, elapsed);
+          schedule();
+          return;
+        }
+        if (motion.matches && state === 'shoot' && elapsed < mokoAnimations.shoot.animationPlayer.durationMs) {
+          paint(landing, 'shoot', 500);
+          schedule();
+          return;
+        }
+      }
+      skillsState = 'idle';
+      idleAt(landing);
+    }
 
     try {
       const saved = sessionStorage.getItem(attackSessionKey);
@@ -196,7 +351,7 @@
       const headingToGround = mode === 'skills-out' || mode === 'skills-idle';
       const wantsGround = wantsSkillsGround(landing.y, innerHeight, headingToGround);
       if (wantsGround && headingToGround) {
-        if (mode === 'skills-idle') idleAt(landing);
+        if (mode === 'skills-idle' && skillsState === 'idle') idleAt(landing);
         return true;
       }
       if ((!wantsGround && !headingToGround) || (wantsGround && mode !== 'rope' && mode !== 'skills-return')) {
@@ -212,11 +367,12 @@
       clearTimeout(restTimer);
       restDue = false;
       perch = undefined;
+      if (!wantsGround) endSkills();
       if (motion.matches) {
         flight = undefined;
         mode = wantsGround ? 'skills-idle' : 'rope';
-        if (wantsGround) idleAt(target);
-        else drawRope();
+        if (wantsGround) landInSkills(target, now);
+        else catchRopeAfterSkills();
       } else {
         flight = route ?? { from: current, to: target, start: now, duration: 280, lift: 28 };
         mode = wantsGround ? 'skills-out' : 'skills-return';
@@ -347,6 +503,10 @@
           paint(point, 'jump_up', t * mokoAnimations.jump_up.animationPlayer.durationMs, true);
         }
         schedule();
+      } else if (mode === 'skills-idle') {
+        syncSkills(now);
+        const landing = project(skillsGround);
+        if (mode === 'skills-idle' && landing && skillsState !== 'idle') updateSkills(now, landing);
       } else if ((mode === 'skills-out' || mode === 'skills-return') && flight) {
         syncSkills(now);
         if (!flight) return;
@@ -356,8 +516,8 @@
         if (t === 1) {
           flight = undefined;
           mode = landing ? 'skills-idle' : 'rope';
-          if (landing) idleAt(target);
-          else drawRope();
+          if (landing) landInSkills(target, now);
+          else catchRopeAfterSkills();
         } else {
           const jump = landing ? 'jump_down' : 'jump_up';
           paint(arc(flight, t, target), jump, t * mokoAnimations[jump].animationPlayer.durationMs, !landing);
@@ -499,6 +659,8 @@
       framing.disconnect();
       motion.removeEventListener('change', recalculate);
       document.removeEventListener('click', onClick, true);
+      requestSkill = undefined;
+      endSkills();
     };
   });
 </script>
@@ -526,7 +688,7 @@
   {/if}
 </div>
 <div class="grip-track" bind:this={gripTrack} aria-hidden="true"></div>
-<div class="sprite-track" class:ready aria-hidden="true">
+<div class="sprite-track" class:ready style:--moko-desktop-scale={desktopScale} class:skills-foreground={skillsState !== 'unavailable' && skillsState !== 'idle'} aria-hidden="true">
   <div class="position" bind:this={position}>
     <div class:face-left={faceLeft}>
       <Moko {clip} {frameTime} />
@@ -534,7 +696,32 @@
   </div>
 </div>
 
+
+{#if coconuts.length}
+  <div class="coco-track" aria-hidden="true">
+    {#each coconuts as coco (coco.id)}
+      <img class="coco-shot" src={cocoSprite} alt="" width="80" height="80"
+        style:left={coco.x + 'px'} style:top={coco.y + 'px'} style:width={coco.size + 'px'}
+        use:flyCoco={coco} />
+    {/each}
+  </div>
+{/if}
+
 <style>
+  .coco-track {
+    position: fixed;
+    z-index: 6;
+    inset: 0;
+    overflow: clip;
+    pointer-events: none;
+  }
+
+  .coco-shot {
+    position: absolute;
+    height: auto;
+    translate: -50% -50%;
+  }
+
   .rail {
     position: absolute;
     inset: 0 auto 0 0;
@@ -571,6 +758,7 @@
     visibility: hidden;
   }
 
+  .sprite-track.skills-foreground { z-index: 5; }
   .sprite-track.ready { visibility: visible; }
 
   .position {
@@ -592,6 +780,10 @@
       --moko-responsive-scale: 1;
       z-index: 5;
     }
+  }
+
+  @media (min-width: 1000px) and (pointer: fine) {
+    .sprite-track { --moko-responsive-scale: var(--moko-desktop-scale); }
   }
 
   @media (prefers-reduced-motion: reduce) {

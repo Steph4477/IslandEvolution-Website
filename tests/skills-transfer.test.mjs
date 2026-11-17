@@ -11,11 +11,14 @@ test('Skills uses a wider exit threshold than entry', () => {
   }
 });
 
-test('the end of the scene exposes the same clearing on narrow screens', () => {
+test('the final crop preserves the clearing and the lower landing stays visible', () => {
   assert.equal(skillsGroundOffset(400, 360, 2), -0);
   assert.equal(skillsGroundOffset(0, 1280, 2), 0);
   for (const width of [360, 768]) {
     const scale = 2;
-    assert.equal(skillsGround.x * scale + skillsGroundOffset(0, width, scale), width * .6);
+    const offset = skillsGroundOffset(0, width, scale);
+    assert.equal(350 * scale + offset, width * .6);
+    const landingX = skillsGround.x * scale + offset;
+    assert(landingX > 44 && landingX < width - 44);
   }
 });

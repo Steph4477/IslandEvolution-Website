@@ -7,7 +7,7 @@ const expected = {
   environment: ['ground.webp', 'jungle.webp', 'liana.png', 'tree.webp'],
   gameplay: ['jungle-exploration.webp', 'temple-sunset.webp'],
   moko: ['clac.png', 'climb-liana-cycle.png', 'climb-liana.png', 'idle.png',
-    'jump-down.png', 'jump-up.png', 'kick.png', 'walk.png']
+    'jump-down.png', 'jump-shoot.png', 'jump-up.png', 'kick.png', 'loot-skill.png', 'shoot.png', 'walk.png']
 };
 
 test('public image paths have the expected spelling and case', () => {
@@ -18,7 +18,7 @@ test('public image paths have the expected spelling and case', () => {
 });
 
 test('Moko sprite sheets keep their original 320 px frame grid', () => {
-  const frameCounts = [4, 4, 1, 4, 2, 2, 4, 5];
+  const frameCounts = [4, 4, 1, 4, 2, 7, 2, 4, 7, 6, 5];
   for (const [index, file] of expected.moko.entries()) {
     const png = readFileSync(new URL('moko/' + file, images));
     assert.equal(png.toString('ascii', 1, 4), 'PNG', file);

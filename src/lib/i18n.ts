@@ -40,6 +40,7 @@ export const translations = {
       ],
       teaser: 'Teaser des difficultés', play: 'Lire le teaser des difficultés'
     },
+    skills: { title: 'Les compétences de Moko', description: "Découvrez quelques-uns des mouvements de Moko !", more: 'Avec plus de 30 animations et bien d’autres compétences à débloquer au fil de l’aventure, Moko vous réserve encore bien des surprises…', jump: 'Saut', shoot: 'Tir Coco' },
     endgame: {
       title: 'Au-delà du défi',
       tagline: "Jusqu'où oserez-vous aller ?",
@@ -88,6 +89,7 @@ export const translations = {
       ],
       teaser: 'Difficulty teaser', play: 'Play the difficulty teaser'
     },
+    skills: { title: "Moko's Skills", description: "Discover some of Moko's moves!", more: 'With over 30 animations and many more abilities to unlock throughout the adventure, Moko still has plenty of surprises in store…', jump: 'Jump', shoot: 'Coco Shot' },
     endgame: {
       title: 'Beyond the Challenge',
       tagline: 'How far will you dare to go?',

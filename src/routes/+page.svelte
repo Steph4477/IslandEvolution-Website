@@ -9,9 +9,12 @@
   import CanopyGallery from '../lib/components/CanopyGallery.svelte';
   import AdventureVideo from '../lib/components/AdventureVideo.svelte';
   import { languageKey, translations, type Language } from '../lib/i18n';
+  import { acceptsSkill, type SkillsState } from '../lib/scene/skills-actions';
   import { introProgress, introTiming } from '../lib/scene/intro-timeline';
 
   let showMoko = $state(true);
+  let moko: ReturnType<typeof MokoLiana> | undefined = $state();
+  let skillsState = $state<SkillsState>('unavailable');
   let introActive = $state(true);
   let introElapsed = $state(0);
   const introReveal = $derived(introActive ? introProgress(introElapsed, introTiming.rejoin + 200, introTiming.end) : 1);
@@ -100,7 +103,10 @@
 
   <div class="world">
     <JungleBackdrop active={introActive} elapsed={introElapsed} bind:plane={treePlane} {language} />
-    {#if showMoko}<MokoLiana {introActive} {introElapsed} {treePlane} />{/if}
+    {#if showMoko}
+      <MokoLiana bind:this={moko} {introActive} {introElapsed} {treePlane}
+        bind:skillsState />
+    {/if}
   <main id="jeu" tabindex="-1" class:awaitingReveal={introReveal === 0} style:--intro-reveal={introReveal}>
     <section id="accueil" class="intro" class:opening={introActive} aria-labelledby="title">
       <CinematicIntro active={introActive} onFrame={(elapsed) => { introElapsed = elapsed; }} onFinish={finishIntro} skipLabel={copy.skip} />
@@ -183,7 +189,17 @@
       </div>
     </section>
 
-    <div id="skills" class="skills-slot" aria-hidden="true"></div>
+    <section id="skills" class="skills-slot" aria-labelledby="skills-title">
+      <div class="skills-copy">
+        <h2 id="skills-title">{copy.skills.title}</h2>
+        <p>{copy.skills.description}</p>
+        <p>{copy.skills.more}</p>
+        <div class="skill-controls">
+          <button type="button" aria-disabled={!showMoko || !acceptsSkill(skillsState, 'jump')} onclick={() => moko?.playSkill('jump')}>{copy.skills.jump}</button>
+          <button type="button" aria-disabled={!showMoko || !acceptsSkill(skillsState, 'shoot')} onclick={() => moko?.playSkill('shoot')}>{copy.skills.shoot}</button>
+        </div>
+      </div>
+    </section>
   </main>
   </div>
 </div>
@@ -316,6 +332,7 @@
   }
 
   .world {
+    --skills-tail: clamp(5.5rem, calc(8rem - 4vw), 7rem);
     position: relative;
     isolation: isolate;
   }
@@ -515,10 +532,54 @@
   }
 
   .skills-slot {
-    min-block-size: clamp(17rem, 34svh, 22rem);
-    pointer-events: none;
-    background: linear-gradient(to bottom, transparent calc(100% - 9rem), rgb(21 19 13 / .38) calc(100% - 4.5rem), #101411);
+    position: relative;
+    flex: none;
+    padding: 0;
+    min-block-size: calc(clamp(17rem, 34svh, 22rem) + var(--skills-tail));
+    background: linear-gradient(to bottom, transparent calc(100% - var(--skills-tail) - 9rem),
+      rgb(21 19 13 / .38) calc(100% - var(--skills-tail) - 4.5rem), #101411 calc(100% - var(--skills-tail)));
   }
+
+  .skills-copy {
+    position: absolute;
+    isolation: isolate;
+    inset-inline: var(--content-gutter);
+    inset-block-end: .6rem;
+    margin-inline: auto;
+    max-width: 30rem;
+    color: #fff2dc;
+    text-align: center;
+  }
+
+  .skills-copy::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset: -.65rem;
+    background: linear-gradient(90deg, transparent, #0b1711d9 10% 90%, transparent);
+    mask-image: linear-gradient(transparent, #000 18% 86%, transparent);
+    pointer-events: none;
+  }
+
+  .skills-copy h2 { font-size: clamp(1.65rem, 3vw, 2.5rem); line-height: 1.08; }
+  .skills-copy p { margin: .45rem auto .65rem; color: inherit; line-height: 1.35; }
+
+  .skills-copy p + p { margin-block-start: .35rem; }
+
+  .skill-controls { display: flex; justify-content: center; flex-wrap: wrap; gap: .5rem; }
+  .skill-controls button {
+    min-height: 44px;
+    border: 1px solid #e2be78;
+    border-radius: 99px;
+    padding: .35rem .9rem;
+    background: #203c2b;
+    color: #fff2dc;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 650;
+  }
+
+  .skill-controls button[aria-disabled='true'] { border-color: #abac93; background: #27382f; cursor: default; }
 
   @media (min-width: 800px) {
     .hero-copy { --hero-size-reserve: max(calc(var(--rail-width) + clamp(1rem, 6vw, 6rem)), 34vw); }

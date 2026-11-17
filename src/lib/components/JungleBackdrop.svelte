@@ -37,7 +37,7 @@
     function frameGround() {
       if (!plane) return;
       const viewport = document.documentElement;
-      const remaining = viewport.scrollHeight - innerHeight - scrollY;
+      const remaining = (plane.parentElement?.getBoundingClientRect().bottom ?? innerHeight) - innerHeight;
       const offset = skillsGroundOffset(motion.matches && remaining < 380 ? 0 : remaining,
         viewport.clientWidth, plane.offsetWidth / width);
       plane.style.setProperty('--skills-crop', offset + 'px');
@@ -106,7 +106,7 @@
 <style>
   .scene {
     position: absolute;
-    inset: 0;
+    inset: 0 0 var(--skills-tail, 0px);
     overflow: clip;
     pointer-events: none;
   }
