@@ -3,6 +3,8 @@
   import { asset } from '$app/paths';
   import { perchLabel, translations, type Language } from '../i18n';
   import manifest from '../scene/tree-perches.json';
+  import { observeScroll } from '../scene/scroll-controller';
+  import { skillsGroundOffset } from '../scene/skills-transfer';
   import { introCamera } from '../scene/intro-timeline';
 
   let { active, elapsed, language, plane = $bindable() }: {
@@ -31,6 +33,21 @@
 
   onMount(() => {
     diagnostic = new URLSearchParams(location.search).get('diagnostic') === '1';
+    const motion = matchMedia('(prefers-reduced-motion: reduce)');
+    function frameGround() {
+      if (!plane) return;
+      const viewport = document.documentElement;
+      const remaining = viewport.scrollHeight - innerHeight - scrollY;
+      const offset = skillsGroundOffset(motion.matches && remaining < 380 ? 0 : remaining,
+        viewport.clientWidth, plane.offsetWidth / width);
+      plane.style.setProperty('--skills-crop', offset + 'px');
+    }
+    const stop = observeScroll(frameGround);
+    motion.addEventListener('change', frameGround);
+    return () => {
+      stop();
+      motion.removeEventListener('change', frameGround);
+    };
   });
 </script>
 
@@ -125,7 +142,10 @@
   }
 
   .active .plane { transform: var(--intro-camera, none); }
-  .scene:not(.active) .plane { transform: var(--diagnostic-framing, none); }
+  .scene:not(.active) .plane {
+    translate: var(--skills-crop, 0px) 0;
+    transform: var(--diagnostic-framing, none);
+  }
 
   .point {
     position: absolute;

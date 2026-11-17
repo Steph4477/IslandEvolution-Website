@@ -10,6 +10,7 @@
   import { asset } from '$app/paths';
   import Moko from './Moko.svelte';
   import { observeScroll } from '../scene/scroll-controller';
+  import { skillsGround, wantsSkillsGround } from '../scene/skills-transfer';
   import { mokoAnimations, type MokoClip } from '../moko/moko';
   import tree from '../scene/tree-perches.json';
   import { introCamera, introProgress, introTiming } from '../scene/intro-timeline';
@@ -83,7 +84,7 @@
     let flight: Flight | undefined;
     let footerCatch: { target: Point; updated: number } | undefined;
     let walking: { perch: Perch; start: number; y: number } | undefined;
-    let mode: 'intro' | 'rope' | 'out' | 'return' | 'walk' | 'rest' =
+    let mode: 'intro' | 'rope' | 'out' | 'return' | 'walk' | 'rest' | 'skills-out' | 'skills-idle' | 'skills-return' =
       introActive && !motion.matches ? 'intro' : 'rope';
     let introFlight: Flight | undefined;
     let restDue = false;
@@ -130,10 +131,10 @@
       ready = size > 0;
     }
 
-    function clearance(point: Point, halfWidth: number) {
+    function clearance(point: Point, halfWidth: number, leftEdge = 0) {
       const size = position.offsetWidth;
       const top = document.querySelector('header')?.getBoundingClientRect().bottom ?? 0;
-      return Math.min(point.x - size * halfWidth, document.documentElement.clientWidth - point.x - size * halfWidth,
+      return Math.min(point.x - size * halfWidth - leftEdge, document.documentElement.clientWidth - point.x - size * halfWidth,
         point.y - size * .405 - top, innerHeight - point.y - size * .015);
     }
 
@@ -149,13 +150,15 @@
       };
     }
 
-    function plan(from: Point, to: Point, start: number, returns: boolean): Flight | undefined {
+    function plan(from: Point, to: Point, start: number, returns: boolean, startsOnRope = false): Flight | undefined {
       const distance = Math.hypot(to.x - from.x, to.y - from.y);
       const duration = clamp(330 + distance * 2, 380, 1150) * navigationJumpDuration;
       const route = { from, to, start, duration: duration / JUMP_SPEED_MULTIPLIER, lift: 0 };
       // Monter au-dessus de l’appui avant la descente. Réduire l’arc près du haut de la fenêtre.
       const lift = clamp(distance * .27 + 20, 24, 130);
       const halfWidth = returns ? .19 : .175;
+      // Au départ de Skills, accepter uniquement le recadrage déjà présent sur la liane.
+      const launchEdge = startsOnRope ? Math.min(0, from.x - position.offsetWidth * halfWidth) : 0;
       for (const preferMargin of [true, false]) {
         for (const ratio of [1, .65, .35, 0]) {
           route.lift = lift * ratio;
@@ -166,7 +169,7 @@
             const point = arc(route, t);
             const edgeAllowance = Math.max(0, mix(clearance(from, halfWidth), clearance(to, halfWidth), t));
             const required = preferMargin ? Math.min(margin, edgeAllowance) : 0;
-            if (clearance(point, halfWidth) < required - .5) { clear = false; break; }
+            if (clearance(point, halfWidth, launchEdge * (1 - t * t * (3 - 2 * t))) < required - .5) { clear = false; break; }
           }
           if (clear) return { ...route };
         }
@@ -184,6 +187,42 @@
 
     function idleAt(point: Point) {
       paint(point, 'idle');
+    }
+
+    function syncSkills(now: number) {
+      const landing = project(skillsGround);
+      if (!landing) return false;
+
+      const headingToGround = mode === 'skills-out' || mode === 'skills-idle';
+      const wantsGround = wantsSkillsGround(landing.y, innerHeight, headingToGround);
+      if (wantsGround && headingToGround) {
+        if (mode === 'skills-idle') idleAt(landing);
+        return true;
+      }
+      if ((!wantsGround && !headingToGround) || (wantsGround && mode !== 'rope' && mode !== 'skills-return')) {
+        return mode === 'skills-return';
+      }
+
+      const target = wantsGround ? landing : rope();
+      if (wantsGround && !fits(target)) return mode === 'skills-return';
+
+      const route = plan(current, target, now, !wantsGround, wantsGround && mode === 'rope');
+      if (wantsGround && !route && !motion.matches) return mode === 'skills-return';
+
+      clearTimeout(restTimer);
+      restDue = false;
+      perch = undefined;
+      if (motion.matches) {
+        flight = undefined;
+        mode = wantsGround ? 'skills-idle' : 'rope';
+        if (wantsGround) idleAt(target);
+        else drawRope();
+      } else {
+        flight = route ?? { from: current, to: target, start: now, duration: 280, lift: 28 };
+        mode = wantsGround ? 'skills-out' : 'skills-return';
+        schedule();
+      }
+      return true;
     }
 
     function onClick(event: MouseEvent) {
@@ -266,7 +305,7 @@
         if (!introActive || motion.matches) {
           mode = 'rope';
           drawRope();
-          if (progress > 0) armRest();
+          if (!syncSkills(now) && progress > 0) armRest();
           return;
         }
         const { landing, rejoin, end } = introTiming;
@@ -308,6 +347,22 @@
           paint(point, 'jump_up', t * mokoAnimations.jump_up.animationPlayer.durationMs, true);
         }
         schedule();
+      } else if ((mode === 'skills-out' || mode === 'skills-return') && flight) {
+        syncSkills(now);
+        if (!flight) return;
+        const landing = mode === 'skills-out';
+        const target = landing ? project(skillsGround) ?? flight.to : rope();
+        const t = motion.matches ? 1 : clamp((now - flight.start) / flight.duration, 0, 1);
+        if (t === 1) {
+          flight = undefined;
+          mode = landing ? 'skills-idle' : 'rope';
+          if (landing) idleAt(target);
+          else drawRope();
+        } else {
+          const jump = landing ? 'jump_down' : 'jump_up';
+          paint(arc(flight, t, target), jump, t * mokoAnimations[jump].animationPlayer.durationMs, !landing);
+          schedule();
+        }
       } else if (mode === 'walk' && walking) {
         const from = project(walking.perch.feetPx);
         const to = project(walking.perch.walkToPx);
@@ -336,7 +391,7 @@
           flight = undefined;
           footerCatch = undefined;
           drawRope();
-          if (restDue) armRest();
+          if (!syncSkills(now) && restDue) armRest();
         } else {
           const target = rope();
           let destination = target;
@@ -367,9 +422,9 @@
 
     const stopScroll = observeScroll((next) => {
       progress = next.progress;
-      if (next.direction === 'none') return;
-      movementClip = next.direction === 'up' ? 'climb_liana_cycle' : 'climb_liana';
+      if (next.direction !== 'none') movementClip = next.direction === 'up' ? 'climb_liana_cycle' : 'climb_liana';
       if (introActive || mode === 'intro') return;
+      if (syncSkills(performance.now()) || next.direction === 'none') return;
       if (motion.matches) {
         mode = 'rope';
 
@@ -397,6 +452,10 @@
       // L'échelle de la texture reste celle de l'ancienne liane à l'écran.
       vineScale = gripTrack.clientHeight / 1970;
       if (mode === 'intro') return;
+      if (mode === 'skills-out' || mode === 'skills-return' || mode === 'skills-idle') {
+        syncSkills(performance.now());
+        return;
+      }
       if (mode === 'rest' && perch) {
         const point = project(perch.feetPx);
         if (point && fits(point)) {
@@ -410,7 +469,7 @@
       perch = undefined;
 
       drawRope();
-      if (progress > 0) armRest();
+      if (!syncSkills(performance.now()) && progress > 0) armRest();
     }
 
     const resize = new ResizeObserver(recalculate);

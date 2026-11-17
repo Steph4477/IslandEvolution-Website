@@ -86,10 +86,10 @@
   <header>
     <a class="skip-content" href="#jeu">{copy.skipToContent}</a>
     <div class="header-controls">
-      <a class="header-beta" href="#beta" aria-label={copy.joinBeta} aria-describedby="beta-status">
+      <button type="button" class="header-beta" disabled aria-label={copy.joinBeta} aria-describedby="beta-status">
         <span class="beta-label-full">{copy.joinBeta}</span>
         <span class="beta-label-short">{copy.betaShort}</span>
-      </a>
+      </button>
       <button type="button" class:moko-visible={showMoko} onclick={() => showMoko = !showMoko}>
         {showMoko ? copy.hideMoko : copy.showMoko}
       </button>
@@ -114,7 +114,7 @@
         </h1>
         <p>{copy.intro}</p>
         <div class="hero-actions">
-          <a class="hero-link" href="#beta" aria-describedby="beta-status">{copy.joinBeta}</a>
+          <button type="button" class="hero-link" disabled aria-describedby="beta-status">{copy.joinBeta}</button>
           <small class="beta-details">{copy.betaDetails}</small>
           <small class="beta-status" id="beta-status">{copy.betaStatus}</small>
         </div>
@@ -183,27 +183,7 @@
       </div>
     </section>
 
-    <div id="skills" class="skills-slot" aria-hidden="true">
-      <span class="skills-landing" data-skills-landing></span>
-    </div>
-
-    <section id="beta" aria-labelledby="beta-title" tabindex="-1">
-      <div class="reading">
-        <h2 id="beta-title">{copy.beta}</h2>
-        <p>{copy.betaInfo}</p>
-      </div>
-    </section>
-
-    <footer>
-      <div class="reading">
-        <p class="footer-title">Island Evolution</p>
-        <nav aria-label={copy.footer}>
-          <a href="#jungle">{copy.screenshots}</a>
-          <a href="#beta">{copy.beta}</a>
-          <a href="#accueil"><span aria-hidden="true">↑</span> {copy.top}</a>
-        </nav>
-      </div>
-    </footer>
+    <div id="skills" class="skills-slot" aria-hidden="true"></div>
   </main>
   </div>
 </div>
@@ -279,7 +259,7 @@
   }
 
   @media (hover: hover) {
-    .header-controls :global(button:hover), .header-controls .header-beta:hover {
+    .header-controls :global(button:not(:disabled):hover) {
       border-color: #f0cf84;
       background: #1b3626ba;
     }
@@ -291,7 +271,7 @@
     }
   }
 
-  .header-controls > button {
+  .header-controls > button:not(.header-beta) {
     min-width: 7rem;
     border-radius: 999px;
     padding: 0.4rem 0.7rem;
@@ -304,6 +284,7 @@
     align-items: center;
     justify-content: center;
     padding-inline: .65rem;
+    font-family: inherit;
     border-radius: 999px;
     background-color: #122c1bef;
     font-size: .8rem;
@@ -348,7 +329,7 @@
     text-shadow: 0 0 2px #0b1711, 0 1px 4px #0b1711, 0 0 12px #0b1711;
   }
 
-  section, footer {
+  section {
     scroll-margin-top: var(--controls-height);
     padding-block: clamp(2.5rem, 6vw, 5rem);
     padding-inline: var(--content-gutter);
@@ -413,7 +394,7 @@
     .opening .hero-copy { opacity: 1; }
   }
 
-  h1, h2, h3, .footer-title {
+  h1, h2, h3 {
     margin: 0;
     font-family: Georgia, serif;
     font-weight: 400;
@@ -449,8 +430,7 @@
     text-decoration: none;
   }
 
-  .hero-link:hover { border-color: #f0cf84; background: #2a4b34; }
-  .hero-link:active { background: #142019; }
+  .hero-link:disabled, .header-controls .header-beta:disabled { cursor: default; }
 
   .beta-details, .beta-status {
     color: #fff2d8;
@@ -533,21 +513,10 @@
   }
 
   .skills-slot {
-    position: relative;
-    min-block-size: clamp(8rem, 22svh, 14rem);
+    min-block-size: clamp(17rem, 34svh, 22rem);
     pointer-events: none;
+    background: linear-gradient(to bottom, transparent calc(100% - 9rem), rgb(21 19 13 / .38) calc(100% - 4.5rem), #101411);
   }
-
-  .skills-landing {
-    position: absolute;
-    inset-inline-start: clamp(8rem, 22vw, 16rem);
-    inset-block-end: 1rem;
-  }
-
-  footer { padding-bottom: clamp(5rem, 10vw, 8rem); }
-  .footer-title { font-size: clamp(1.6rem, 3vw, 2.6rem); margin: 0 0 1rem; }
-  footer nav { display: flex; flex-wrap: wrap; gap: .75rem 1.3rem; }
-  footer nav a { display: inline-flex; align-items: center; gap: .25em; min-height: 24px; }
 
   @media (min-width: 800px) {
     .hero-copy { --hero-size-reserve: max(calc(var(--rail-width) + clamp(1rem, 6vw, 6rem)), 34vw); }

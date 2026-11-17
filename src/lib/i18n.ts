@@ -46,8 +46,6 @@ export const translations = {
       description: 'Même après avoir affronté le Roi de l’île, bien des secrets restent à découvrir…',
       play: 'Lire la vidéo « Au-delà du défi »'
     },
-    beta: 'Bêta Android', betaInfo: 'Les informations d’accès et de participation seront publiées ici.',
-    footer: 'Liens de pied de page', screenshots: 'Captures du jeu', top: 'Retour à la canopée',
     diagnostic: {
       framing: 'Cadrage du décor', settings: 'Réglages', zoom: 'Zoom', offset: 'Décalage horizontal',
       reset: 'Cadrage initial', coordinates: 'Coordonnées comparées, ancien et actuel',
@@ -96,8 +94,6 @@ export const translations = {
       description: 'Even after the King challenge, many secrets remain to be discovered…',
       play: 'Play the Beyond the Challenge video'
     },
-    beta: 'Android beta', betaInfo: 'Details on how to access and take part in the beta will be posted here.',
-    footer: 'Footer links', screenshots: 'Gameplay screenshots', top: 'Back to the canopy',
     diagnostic: {
       framing: 'Scene framing', settings: 'Settings', zoom: 'Zoom', offset: 'Horizontal offset',
       reset: 'Reset framing', coordinates: 'Previous and current coordinates',
