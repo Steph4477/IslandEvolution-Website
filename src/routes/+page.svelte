@@ -1,15 +1,42 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { asset } from '$app/paths';
   import { description, siteName, siteUrl, socialImage, socialImageAlt, structuredData, title } from '../lib/seo';
   import MokoLiana from '../lib/components/MokoLiana.svelte';
   import CinematicIntro from '../lib/components/CinematicIntro.svelte';
   import JungleBackdrop from '../lib/components/JungleBackdrop.svelte';
+  import LanguageSwitcher from '../lib/components/LanguageSwitcher.svelte';
+  import { languageKey, translations, type Language } from '../lib/i18n';
   import { introProgress, introTiming } from '../lib/scene/intro-timeline';
 
   let showMoko = $state(true);
   let introActive = $state(true);
   let introElapsed = $state(0);
   let treePlane = $state<HTMLDivElement>();
+  let language = $state<Language>('fr');
+  const copy = $derived(translations[language]);
+
+  function applyLanguage(next: Language) {
+    language = next;
+    document.documentElement.lang = next;
+  }
+
+  onMount(() => {
+    try {
+      if (localStorage.getItem(languageKey) === 'en') applyLanguage('en');
+    } catch {
+      // La page reste utilisable lorsque le stockage est désactivé.
+    }
+  });
+
+  function selectLanguage(next: Language) {
+    applyLanguage(next);
+    try {
+      localStorage.setItem(languageKey, next);
+    } catch {
+      // La langue reste active pour cette visite.
+    }
+  }
 
   function finishIntro() {
     introActive = false;
@@ -49,67 +76,70 @@
 <div class="page">
   <header>
     <a class="brand" href="#accueil">Island Evolution</a>
-    <button type="button" aria-pressed={showMoko} onclick={() => showMoko = !showMoko}>Afficher Moko</button>
+    <div class="header-controls">
+      <button type="button" aria-pressed={showMoko} onclick={() => showMoko = !showMoko}>{copy.moko}</button>
+      <LanguageSwitcher {language} label={copy.language} select={selectLanguage} />
+    </div>
   </header>
 
   <div class="world">
-    <JungleBackdrop active={introActive} elapsed={introElapsed} bind:plane={treePlane} />
+    <JungleBackdrop active={introActive} elapsed={introElapsed} bind:plane={treePlane} {language} />
     {#if showMoko}<MokoLiana {introActive} {introElapsed} {treePlane} />{/if}
   <main>
     <section id="accueil" class="intro" class:opening={introActive} aria-labelledby="title"
       style:--hero-opacity={introActive ? introProgress(introElapsed, introTiming.rejoin + 200, introTiming.end) : undefined}>
-      <CinematicIntro active={introActive} onFrame={(elapsed) => { introElapsed = elapsed; }} onFinish={finishIntro} />
+      <CinematicIntro active={introActive} onFrame={(elapsed) => { introElapsed = elapsed; }} onFinish={finishIntro} skipLabel={copy.skip} />
       <div class="reading hero-copy">
-        <h1 id="title">Island<br />Evolution</h1>
-        <p>Un jeu de plateforme 2D. Suivez Moko de la canopée jusqu’au sol de la jungle.</p>
-        <a class="next hero-link" href="#jungle"><span aria-hidden="true">↓</span> Descendre dans la jungle</a>
+        <h1 id="title"><img class="game-title" src={asset('images/moko-title.png')} width="1920" height="819"
+          alt="MOKO – ISLAND EVOLUTION" decoding="async" fetchpriority="low" /></h1>
+        <p>{copy.intro}</p>
+        <a class="next hero-link" href="#jungle"><span aria-hidden="true">↓</span> {copy.descend}</a>
       </div>
     </section>
 
     <section id="jungle" aria-labelledby="jungle-title">
       <div class="reading">
-        <h2 id="jungle-title">Sous la canopée</h2>
-        <p>Explorez la jungle avec Moko. Ces captures donnent un aperçu des décors et des rencontres du jeu.</p>
+        <h2 id="jungle-title">{copy.jungle}</h2>
+        <p>{copy.galleryIntro}</p>
         <div class="gallery">
           <figure>
-            <img src={asset('images/gameplay/jungle-exploration.webp')} alt="Moko explore la jungle du jeu" loading="lazy" />
-            <figcaption>Exploration de la jungle</figcaption>
+            <img src={asset('images/gameplay/jungle-exploration.webp')} alt={copy.jungleAlt} loading="lazy" />
+            <figcaption>{copy.jungleCaption}</figcaption>
           </figure>
           <figure>
-            <img src={asset('images/gameplay/temple-sunset.webp')} alt="Le temple du jeu au coucher du soleil" loading="lazy" />
-            <figcaption>Le temple au crépuscule</figcaption>
+            <img src={asset('images/gameplay/temple-sunset.webp')} alt={copy.templeAlt} loading="lazy" />
+            <figcaption>{copy.templeCaption}</figcaption>
           </figure>
         </div>
-        <p class="note">Vidéos de gameplay à venir.</p>
+        <p class="note">{copy.videos}</p>
       </div>
     </section>
 
     <section id="defis" aria-labelledby="defis-title">
       <div class="reading">
-        <h2 id="defis-title">Au cœur de l’île</h2>
+        <h2 id="defis-title">{copy.island}</h2>
         <div class="topics">
-          <article><h3>Difficultés</h3><p>Les niveaux de difficulté et leurs différences seront présentés ici.</p></article>
-          <article><h3>Compétences de Moko</h3><p>Double saut, Coco Fire et attaques Clac et Kick.</p></article>
-          <article><h3>Évolution</h3><p>Découvrez comment Moko évolue au fil de l’aventure.</p></article>
-          <article><h3>Mode Endless</h3><p>Les règles et les objectifs du mode seront détaillés ici.</p></article>
+          {#each copy.topics as [heading, text]}
+            <article><h3>{heading}</h3><p>{text}</p></article>
+          {/each}
         </div>
       </div>
     </section>
 
     <section id="beta" aria-labelledby="beta-title">
       <div class="reading">
-        <h2 id="beta-title">Bêta Android</h2>
-        <p>Les informations d’accès et de participation seront publiées ici.</p>
+        <h2 id="beta-title">{copy.beta}</h2>
+        <p>{copy.betaInfo}</p>
       </div>
     </section>
 
     <footer>
       <div class="reading">
         <p class="footer-title">Island Evolution</p>
-        <nav aria-label="Liens de pied de page">
-          <a href="#jungle">Captures du jeu</a>
-          <a href="#beta">Bêta Android</a>
-          <a href="#accueil"><span aria-hidden="true">↑</span> Retour à la canopée</a>
+        <nav aria-label={copy.footer}>
+          <a href="#jungle">{copy.screenshots}</a>
+          <a href="#beta">{copy.beta}</a>
+          <a href="#accueil"><span aria-hidden="true">↑</span> {copy.top}</a>
         </nav>
       </div>
     </footer>
@@ -157,6 +187,8 @@
     font-size: clamp(1rem, 4vw, 1.45rem);
     text-decoration: none;
   }
+
+  .header-controls { display: flex; align-items: center; gap: .25rem; }
 
   button {
     min-height: 44px;
@@ -228,7 +260,7 @@
     line-height: 0.96;
   }
 
-  h1 { font-size: clamp(2.65rem, 10vw, 9rem); }
+  .game-title { display: block; width: min(100%, 42rem); height: auto; }
   h2 { font-size: clamp(2.15rem, 5vw, 5rem); }
   h3 { font-size: clamp(1.2rem, 2vw, 1.8rem); line-height: 1.15; letter-spacing: -.025em; }
 

@@ -1,14 +1,17 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { asset } from '$app/paths';
+  import { perchLabel, translations, type Language } from '../i18n';
   import manifest from '../scene/tree-perches.json';
   import { introCamera } from '../scene/intro-timeline';
 
-  let { active, elapsed, plane = $bindable() }: {
+  let { active, elapsed, language, plane = $bindable() }: {
     active: boolean;
     elapsed: number;
+    language: Language;
     plane?: HTMLDivElement;
   } = $props();
+  const labels = $derived(translations[language].diagnostic);
   let diagnostic = $state(false);
   const blurId = $props.id();
 
@@ -53,7 +56,7 @@
         <span
           class="point"
           data-point={point.id}
-          title={point.label}
+          title={perchLabel(language, point)}
           style:left={`${point.feetPx.x / width * 100}%`}
           style:top={`${point.feetPx.y / height * 100}%`}
         >{index + 1}</span>
@@ -64,19 +67,19 @@
 
 {#if diagnostic}
   <details class="diagnostic">
-    <summary>Cadrage du décor</summary>
+    <summary>{labels.framing}</summary>
     <fieldset disabled={active}>
-      <legend>Réglages</legend>
-      <label for="tree-zoom">Zoom · {zoom} %</label>
+      <legend>{labels.settings}</legend>
+      <label for="tree-zoom">{labels.zoom} · {zoom} %</label>
       <input id="tree-zoom" type="range" min="50" max="125" bind:value={zoom} />
-      <label for="tree-offset">Décalage horizontal · {offsetX} px</label>
+      <label for="tree-offset">{labels.offset} · {offsetX} px</label>
       <input id="tree-offset" type="range" min="-750" max="150" bind:value={offsetX} />
-      <button type="button" onclick={() => { zoom = 100; offsetX = 0; }}>Cadrage initial</button>
+      <button type="button" onclick={() => { zoom = 100; offsetX = 0; }}>{labels.reset}</button>
     </fieldset>
-    <ol class="coordinates" aria-label="Coordonnées comparées, ancien et actuel">
+    <ol class="coordinates" aria-label={labels.coordinates}>
       {#each manifest.restPoints as point (point.id)}
-        <li>{point.label}<br />
-          Ancien ({point.previousFeetPx.x}, {point.previousFeetPx.y}) → Actuel ({point.feetPx.x}, {point.feetPx.y})
+        <li>{perchLabel(language, point)}<br />
+          {labels.previous} ({point.previousFeetPx.x}, {point.previousFeetPx.y}) → {labels.current} ({point.feetPx.x}, {point.feetPx.y})
         </li>
       {/each}
     </ol>

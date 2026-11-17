@@ -1,10 +1,11 @@
 <script lang="ts">
   import { introTiming } from '../scene/intro-timeline';
 
-  let { active, onFrame, onFinish }: {
+  let { active, onFrame, onFinish, skipLabel }: {
     active: boolean;
     onFrame: (elapsed: number) => void;
     onFinish: () => void;
+    skipLabel: string;
   } = $props();
 
   function finish() {
@@ -46,7 +47,7 @@
 </script>
 
 {#if active}
-  <button class="skip" type="button" onclick={finish}>Passer l’intro</button>
+  <button class="skip" type="button" onclick={finish}>{skipLabel}</button>
 {/if}
 
 <style>
