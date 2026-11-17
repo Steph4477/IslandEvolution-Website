@@ -1,0 +1,1 @@
+import{I as e,b as t,h as n,x as r}from"../chunks/WP25SBi1.js";function i(i,a){var o=r(),s=e(o);n(s,()=>a.children),t(i,o)}export{i as component};
