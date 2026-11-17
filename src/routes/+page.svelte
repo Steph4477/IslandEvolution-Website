@@ -14,6 +14,7 @@
   let showMoko = $state(true);
   let introActive = $state(true);
   let introElapsed = $state(0);
+  const introReveal = $derived(introActive ? introProgress(introElapsed, introTiming.rejoin + 200, introTiming.end) : 1);
   let treePlane = $state<HTMLDivElement>();
   let language = $state<Language>('fr');
   const copy = $derived(translations[language]);
@@ -100,9 +101,8 @@
   <div class="world">
     <JungleBackdrop active={introActive} elapsed={introElapsed} bind:plane={treePlane} {language} />
     {#if showMoko}<MokoLiana {introActive} {introElapsed} {treePlane} />{/if}
-  <main id="jeu" tabindex="-1">
-    <section id="accueil" class="intro" class:opening={introActive} aria-labelledby="title"
-      style:--hero-opacity={introActive ? introProgress(introElapsed, introTiming.rejoin + 200, introTiming.end) : undefined}>
+  <main id="jeu" tabindex="-1" class:awaitingReveal={introReveal === 0} style:--intro-reveal={introReveal}>
+    <section id="accueil" class="intro" class:opening={introActive} aria-labelledby="title">
       <CinematicIntro active={introActive} onFrame={(elapsed) => { introElapsed = elapsed; }} onFinish={finishIntro} skipLabel={copy.skip} />
       <div class="reading hero-copy">
         <h1 id="title">
@@ -387,11 +387,13 @@
     text-align: center;
   }
 
-  .opening .hero-copy { opacity: var(--hero-opacity, 0); }
-  .opening .hero-copy:focus-within { opacity: 1; }
+  .opening { overflow: clip; }
+  .hero-copy, .canopy { opacity: var(--intro-reveal); }
+  .awaitingReveal :is(.hero-copy, .canopy) { visibility: hidden; }
 
   @media (prefers-reduced-motion: reduce) {
-    .opening .hero-copy { opacity: 1; }
+    .hero-copy, .canopy { opacity: 1; }
+    .awaitingReveal :is(.hero-copy, .canopy) { visibility: visible; }
   }
 
   h1, h2, h3 {
