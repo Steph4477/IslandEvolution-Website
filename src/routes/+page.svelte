@@ -183,16 +183,9 @@
       </div>
     </section>
 
-    <section id="defis" aria-labelledby="defis-title">
-      <div class="reading">
-        <h2 id="defis-title">{copy.island}</h2>
-        <div class="topics">
-          {#each copy.topics as [heading, text]}
-            <article><h3>{heading}</h3><p>{text}</p></article>
-          {/each}
-        </div>
-      </div>
-    </section>
+    <div id="skills" class="skills-slot" aria-hidden="true">
+      <span class="skills-landing" data-skills-landing></span>
+    </div>
 
     <section id="beta" aria-labelledby="beta-title" tabindex="-1">
       <div class="reading">
@@ -539,18 +532,17 @@
     }
   }
 
-  .topics {
-    display: grid;
-    gap: 1rem;
-    margin-top: 1.5rem;
+  .skills-slot {
+    position: relative;
+    min-block-size: clamp(8rem, 22svh, 14rem);
+    pointer-events: none;
   }
 
-  .topics article {
-    min-width: 0;
-    padding: 1.1rem 0;
-    border-top: 1px solid #dce9b54a;
+  .skills-landing {
+    position: absolute;
+    inset-inline-start: clamp(8rem, 22vw, 16rem);
+    inset-block-end: 1rem;
   }
-  .topics p { margin-top: .6rem; }
 
   footer { padding-bottom: clamp(5rem, 10vw, 8rem); }
   .footer-title { font-size: clamp(1.6rem, 3vw, 2.6rem); margin: 0 0 1rem; }
@@ -561,7 +553,6 @@
     .hero-copy { --hero-size-reserve: max(calc(var(--rail-width) + clamp(1rem, 6vw, 6rem)), 34vw); }
     .adventure-copy { max-width: 52rem; }
     .adventure-copy h2 { font-size: clamp(2.15rem, 4vw, 4rem); }
-    .topics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
 </style>
 

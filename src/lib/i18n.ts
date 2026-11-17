@@ -46,12 +46,6 @@ export const translations = {
       description: 'Même après avoir affronté le Roi de l’île, bien des secrets restent à découvrir…',
       play: 'Lire la vidéo « Au-delà du défi »'
     },
-    island: 'Au cœur de l’île',
-    topics: [
-      ['Difficultés', 'Les niveaux de difficulté et leurs différences seront présentés ici.'],
-      ['Compétences de Moko', 'Double saut, Coco Fire et attaques Clac et Kick.'],
-      ['Évolution', 'Découvrez comment Moko évolue au fil de l’aventure.']
-    ],
     beta: 'Bêta Android', betaInfo: 'Les informations d’accès et de participation seront publiées ici.',
     footer: 'Liens de pied de page', screenshots: 'Captures du jeu', top: 'Retour à la canopée',
     diagnostic: {
@@ -102,12 +96,6 @@ export const translations = {
       description: 'Even after the King challenge, many secrets remain to be discovered…',
       play: 'Play the Beyond the Challenge video'
     },
-    island: 'At the heart of the island',
-    topics: [
-      ['Difficulty', 'Details on the difficulty levels and how they differ will be shared here.'],
-      ['Moko’s abilities', 'Double jump, Fire Coco, and the Clac and Kick attacks.'],
-      ['Evolution', 'Discover how Moko evolves throughout the adventure.']
-    ],
     beta: 'Android beta', betaInfo: 'Details on how to access and take part in the beta will be posted here.',
     footer: 'Footer links', screenshots: 'Gameplay screenshots', top: 'Back to the canopy',
     diagnostic: {
