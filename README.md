@@ -2,35 +2,35 @@
 
 <img src="docs/logo/moko-island-evolution.png" alt="MOKO – ISLAND EVOLUTION" width="650">
 
-### Une île mystérieuse. Une jungle qui évolue. Moko face à l’inconnu.
+### A Mysterious Island. An Evolving Jungle. Moko Faces the Unknown.
 
-**Site officiel d’Island Evolution**, un jeu d’action, d’aventure et de plateformes.
+**Official website of Island Evolution**, a 2D action-adventure platformer.
 
-**[Découvrir le site officiel](https://steph4477.github.io/IslandEvolution-Website/)**
+**[Explore the Official Website](https://steph4477.github.io/IslandEvolution-Website/)**
 
 </div>
 
-## Découvrez l’univers de Moko
+## Discover Moko's World
 
-Explorez une jungle vivante, découvrez les capacités de Moko et affrontez trois niveaux de difficulté à débloquer. Les ennemis évoluent selon vos performances et l’aventure peut se prolonger au-delà de la dernière difficulté.
+Explore a living jungle, discover Moko's abilities, and take on three progressively unlockable difficulty levels. Enemies evolve based on your performance, and the adventure can continue beyond the final difficulty.
 
-Le site propose une immersion dans l’univers du jeu, des extraits de gameplay et des interactions avec Moko. Il accueillera également les inscriptions à la bêta Android sur Google Play (**20 places prévues**).
+The website offers an immersive introduction to the game's world, gameplay footage, and interactive experiences with Moko. It will also host registration for the Android beta on Google Play (**20 spots planned**).
 
-## Aperçu du site
+## Website Preview
 
 <div align="center">
 
-**Accueil - Entrez dans la jungle**
+**Welcome – Enter the Jungle**
 
-<img src="docs/screenshots/accueil.png" alt="Accueil du site Island Evolution avec Moko et le décor de jungle" width="650">
+<img src="docs/screenshots/accueil.png" alt="Island Evolution website homepage featuring Moko and the jungle environment" width="650">
 
-**Difficultés - Une seule île, trois défis**
+**Difficulty Levels – One Island, Three Challenges**
 
-<img src="docs/screenshots/difficultes.png" alt="Présentation des trois difficultés et vidéo de gameplay" width="650">
+<img src="docs/screenshots/difficultes.png" alt="Three difficulty levels and gameplay video" width="650">
 
-**Compétences - Découvrez Moko en action**
+**Abilities – Discover Moko in Action**
 
-<img src="docs/screenshots/competences.png" alt="Aperçu du gameplay et des compétences interactives de Moko" width="650">
+<img src="docs/screenshots/competences.png" alt="Gameplay preview and Moko's interactive abilities" width="650">
 
 </div>
 
@@ -42,6 +42,6 @@ Le site propose une immersion dans l’univers du jeu, des extraits de gameplay 
 
 <div align="center">
 
-**[Visiter Island Evolution](https://steph4477.github.io/IslandEvolution-Website/)**
+**[Visit Island Evolution](https://steph4477.github.io/IslandEvolution-Website/)**
 
 </div>
