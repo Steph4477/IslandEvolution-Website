@@ -1,36 +1,47 @@
-# Island Evolution — site officiel
+<div align="center">
 
-Application SvelteKit située à la racine du dépôt. Utiliser Node.js 24.
+<img src="docs/logo/moko-island-evolution.png" alt="MOKO – ISLAND EVOLUTION" width="650">
 
-```sh
-npm ci
-npm run dev
-```
+### Une île mystérieuse. Une jungle qui évolue. Moko face à l’inconnu.
 
-`npm run check` vérifie le code Svelte et TypeScript. `npm test` vérifie les noms des images, les dimensions des planches de Moko et le repère des cinq appuis. `npm run build` compile le site. La configuration SvelteKit 3 se trouve dans `vite.config.ts`.
+**Site officiel d’Island Evolution**, un jeu d’action, d’aventure et de plateformes.
 
-- `src/lib/components/` contient la cinématique, le décor, la liane et le rendu de Moko.
-- `src/lib/moko/` contient le registre des animations et les découpes de sprites.
-- `src/lib/scene/` contient les appuis naturels, le suivi du scroll et la chronologie de l’intro.
-- `static/images/` contient les images servies par le site.
+**[Découvrir le site officiel](https://steph4477.github.io/IslandEvolution-Website/)**
 
-Le mode `?diagnostic=1` affiche les cinq appuis et le cadrage. Les coordonnées d’appui utilisent le canevas commun 1885 × 2048 px des trois calques. Les positions officielles ont été relevées sur l’illustration de calibration `position_reference.jpg`. Cette illustration est distincte des images du site.
+</div>
 
-## URL publique et référencement
+## Découvrez l’univers de Moko
 
-Pour le build de publication, définir `VITE_SITE_URL` avec l’URL HTTPS confirmée de l’accueil. Le chemin de cette URL devient le préfixe des ressources et des routes, y compris lorsque le site est publié dans un sous-répertoire GitHub Pages.
+Explorez une jungle vivante, découvrez les capacités de Moko et affrontez trois niveaux de difficulté à débloquer. Les ennemis évoluent selon vos performances et l’aventure peut se prolonger au-delà de la dernière difficulté.
 
-Le build prérend l’accueil et `robots.txt`. Lorsque l’URL publique est renseignée, il prérend aussi `sitemap.xml` et génère la canonique et les URL absolues de partage. Pour un site publié sous un chemin, les robots consultent le `robots.txt` à la racine de l’hôte. Le sitemap du sous-répertoire peut être soumis directement après publication.
+Le site propose une immersion dans l’univers du jeu, des extraits de gameplay et des interactions avec Moko. Il accueillera également les inscriptions à la bêta Android sur Google Play (**20 places prévues**).
 
-`npm run build` produit le dossier statique `build/` avec `adapter-static`. Pour GitHub Pages, utiliser le contenu de ce dossier comme artefact Pages et inclure `.nojekyll` et `_app/`. Pour vérifier la sortie localement, servir ce dossier avec un serveur de fichiers statiques, à la racine ou au chemin indiqué par `VITE_SITE_URL` lors du build.
+## Aperçu du site
 
-## Export des données de Moko
+<div align="center">
 
-Le manifeste est versionné. Une installation et un build n’ont besoin d’aucun fichier Godot.
-Pour vérifier ou régénérer les définitions `idle` et `climb_liana`, fournir une scène de référence Godot compatible. Elle doit contenir le nœud `Node2D/Sprite`, les atlas et les clés d’animation utilisés pour la calibration d’origine.
+**Accueil - Entrez dans la jungle**
 
-```sh
-npm run export:moko -- "/chemin/vers/player_reference.tscn" --check
-```
+<img src="docs/screenshots/accueil.png" alt="Accueil du site Island Evolution avec Moko et le décor de jungle" width="650">
 
-Sans `--check`, l’exporteur écrit le manifeste dans `src/lib/moko/`. Il lit la scène fournie et les sprites du site. Les autres clips restent définis dans leurs modules.
+**Difficultés - Une seule île, trois défis**
+
+<img src="docs/screenshots/difficultes.png" alt="Présentation des trois difficultés et vidéo de gameplay" width="650">
+
+**Compétences - Découvrez Moko en action**
+
+<img src="docs/screenshots/competences.png" alt="Aperçu du gameplay et des compétences interactives de Moko" width="650">
+
+</div>
+
+## Technologies
+
+**SvelteKit · TypeScript · SCSS · GitHub Pages**
+
+---
+
+<div align="center">
+
+**[Visiter Island Evolution](https://steph4477.github.io/IslandEvolution-Website/)**
+
+</div>
