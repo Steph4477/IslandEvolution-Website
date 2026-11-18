@@ -4,6 +4,8 @@ import test from 'node:test';
 
 const images = new URL('../static/images/', import.meta.url);
 const expected = {
+  'beyond-demo': ['01-mangrove-exploration.webp', '02-temple-bone-tunnel.webp',
+    '03-temple-interior-platforming.webp', '04-arena-entrance.webp'],
   environment: ['ground.webp', 'jungle.webp', 'liana.png', 'tree.webp'],
   gameplay: ['jungle-exploration.webp', 'temple-sunset.webp'],
   moko: ['clac.png', 'climb-liana-cycle.png', 'climb-liana.png', 'idle.png',

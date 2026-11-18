@@ -144,7 +144,9 @@
     }
 
     function releaseCoco(point: Point, spriteSize: number, airborne: boolean) {
-      const size = Math.max(14, spriteSize * .09);
+      // La Coco de la pose shoot occupe environ 33 px dans la frame de 320 px.
+      // Le PNG indépendant n'occupe que 70 px sur 80 en largeur.
+      const size = spriteSize * idle.scale * (33 / 320) * (80 / 70);
       // Coordonnées de la main sur les poses de lancer : shoot 5 et jump_shoot 4.
       const x = point.x + spriteSize * idle.scale * ((airborne ? 237 : 231) - 154) / 320;
       const y = point.y + spriteSize * idle.scale * ((airborne ? 190 : 206) - 279) / 320;
@@ -383,7 +385,7 @@
 
     function onClick(event: MouseEvent) {
       if (introActive || event.button !== 0 || event.detail === 0 || mode !== 'rest' || attackFrame
-        || (event.target instanceof Element && event.target.closest('a, button, input, select'))) return;
+        || (event.target instanceof Element && event.target.closest('a, button, input, select, .beta-dialog[open]'))) return;
       const attack = nextAttack;
       nextAttack = attack === 'kick' ? 'clac' : 'kick';
       try { sessionStorage.setItem(attackSessionKey, nextAttack); } catch { /* Stockage facultatif. */ }
@@ -708,6 +710,14 @@
 {/if}
 
 <style>
+  .sprite-track, .coco-track {
+    /* Keep viewport coordinates, but show only the part inside the immersive world. */
+    clip-path: inset(
+      clamp(0px, var(--world-top, 0px), 100%) 0
+      clamp(0px, calc(100% - var(--world-bottom, 0px)), 100%) 0
+    );
+  }
+
   .coco-track {
     position: fixed;
     z-index: 6;
@@ -778,12 +788,14 @@
     .sprite-track {
       --moko-size: calc(var(--rail-width) * 1.5);
       --moko-responsive-scale: 1;
-      z-index: 5;
     }
   }
 
   @media (min-width: 1000px) and (pointer: fine) {
-    .sprite-track { --moko-responsive-scale: var(--moko-desktop-scale); }
+    .sprite-track {
+      --moko-responsive-scale: var(--moko-desktop-scale);
+      z-index: 5;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {

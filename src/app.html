@@ -4,6 +4,16 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     %sveltekit.head%
+    <noscript>
+      <style>
+        #jeu .hero-copy,
+        #jeu .canopy {
+          opacity: 1;
+          visibility: visible;
+        }
+        #accueil .skip { display: none; }
+      </style>
+    </noscript>
   </head>
   <body>
     <div style="display: contents">%sveltekit.body%</div>

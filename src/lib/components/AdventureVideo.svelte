@@ -1,12 +1,13 @@
 <script lang="ts">
-  import { onMount, tick } from 'svelte';
+  import { tick } from 'svelte';
   import { claimPlayback, createYouTubeFrame, loadYouTube, onPlaybackAvailable, releasePlayback, type YouTubePlayer } from '../video/youtube';
 
-  let { id, poster, title, labels }: {
+  let { id, poster, title, labels, allowed }: {
     id: string;
     poster: string;
     title: string;
     labels: { play: string; unavailable: string };
+    allowed: boolean;
   } = $props();
 
   const threshold = .6;
@@ -15,13 +16,14 @@
   let trigger = $state<HTMLButtonElement>();
   let frame = $state<HTMLIFrameElement>();
   let status = $state<'idle' | 'loading' | 'ready' | 'error'>('idle');
-  let startManually: () => void;
+  let startManually: (() => void) | undefined;
 
   $effect(() => {
     if (frame) frame.title = title;
   });
 
-  onMount(() => {
+  $effect(() => {
+    if (!allowed) return;
     const motion = matchMedia('(prefers-reduced-motion: reduce)');
     let ratio = 0;
     let player: YouTubePlayer | undefined;
@@ -39,7 +41,7 @@
     }
 
     function canPlay() {
-      if (document.hidden || ratio <= 0) return false;
+      if (!allowed || disposed || document.hidden || ratio <= 0) return false;
       return manual || (!motion.matches && !manualOnly && ratio >= threshold);
     }
 
@@ -157,6 +159,10 @@
       window.clearTimeout(timeout);
       pause();
       player?.destroy();
+      host.replaceChildren();
+      frame = undefined;
+      status = 'idle';
+      startManually = undefined;
     };
   });
 </script>
@@ -164,7 +170,9 @@
 <div class="video">
   <div class="screen" bind:this={screen} aria-busy={status === 'loading'}>
     <div class="player" bind:this={host}></div>
-    {#if status !== 'ready'}
+    {#if !allowed}
+      <img class="poster" src={poster} alt="" loading="lazy" decoding="async" width="1280" height="720" />
+    {:else if status !== 'ready'}
       <button type="button" bind:this={trigger} onclick={() => startManually?.()} aria-label={labels.play}>
         <img src={poster} alt="" loading="lazy" decoding="async" width="1280" height="720" />
         <span aria-hidden="true">▶</span>

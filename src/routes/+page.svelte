@@ -1,18 +1,30 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
-  import { asset } from '$app/paths';
+  import { flushSync, onMount, tick } from 'svelte';
+  import { asset, resolve } from '$app/paths';
   import { descriptions, siteName, siteUrl, socialImage, socialImageAlts, structuredData, title } from '../lib/seo';
   import MokoLiana from '../lib/components/MokoLiana.svelte';
   import CinematicIntro from '../lib/components/CinematicIntro.svelte';
   import JungleBackdrop from '../lib/components/JungleBackdrop.svelte';
   import LanguageSwitcher from '../lib/components/LanguageSwitcher.svelte';
+  import { betaApplicationsOpen } from '../lib/beta-application';
+  import { privacyContact } from '../lib/privacy';
+  import BetaLaunchSection from '../lib/components/BetaLaunchSection.svelte';
+  import BetaApplicationDialog from '../lib/components/BetaApplicationDialog.svelte';
   import CanopyGallery from '../lib/components/CanopyGallery.svelte';
   import AdventureVideo from '../lib/components/AdventureVideo.svelte';
   import { languageKey, translations, type Language } from '../lib/i18n';
   import { acceptsSkill, type SkillsState } from '../lib/scene/skills-actions';
   import { introProgress, introTiming } from '../lib/scene/intro-timeline';
+  import { observeScroll } from '../lib/scene/scroll-controller';
+  import { readVideoConsent, videoConsentKey, videoConsentMaxAge, type VideoConsent } from '../lib/video/consent';
 
+  let betaDialog: ReturnType<typeof BetaApplicationDialog> | undefined = $state();
   let showMoko = $state(true);
+  let world: HTMLDivElement;
+  let videoConsent = $state<VideoConsent | null>(null);
+  let firstVideoHeading: HTMLHeadingElement;
+  let videoPreferences: HTMLElement;
+  let skillsCopy: HTMLDivElement;
   let moko: ReturnType<typeof MokoLiana> | undefined = $state();
   let skillsState = $state<SkillsState>('unavailable');
   let introActive = $state(true);
@@ -21,6 +33,9 @@
   let treePlane = $state<HTMLDivElement>();
   let language = $state<Language>('fr');
   const copy = $derived(translations[language]);
+  const videosAllowed = $derived(videoConsent === 'allowed');
+  const privacyUrl = $derived(`${resolve('/confidentialite')}/?lang=${language}`);
+  const betaStatus = $derived(betaApplicationsOpen ? copy.betaOpenStatus : copy.betaStatus);
   const description = $derived(descriptions[language]);
   const socialImageAlt = $derived(socialImageAlts[language]);
   const difficultyRunes = [
@@ -35,11 +50,55 @@
   }
 
   onMount(() => {
-    try {
-      if (localStorage.getItem(languageKey) === 'en') applyLanguage('en');
+    const requested = new URLSearchParams(window.location.search).get('lang');
+    if (requested === 'fr' || requested === 'en') applyLanguage(requested);
+    else try {
+      applyLanguage(localStorage.getItem(languageKey) === 'en' ? 'en' : 'fr');
     } catch {
-      // La page reste utilisable lorsque le stockage est désactivé.
+      applyLanguage('fr');
     }
+
+    try {
+      videoConsent = readVideoConsent(localStorage.getItem(videoConsentKey));
+    } catch {
+      // The previews remain available without storage.
+    }
+    try {
+      const returnKey = videoConsentKey + ':return';
+      if (sessionStorage.getItem(returnKey)) {
+        sessionStorage.removeItem(returnKey);
+        videoPreferences.focus({ preventScroll: true });
+      }
+    } catch {
+      // The preference controls remain usable without storage.
+    }
+    function syncVideoConsent(event: StorageEvent) {
+      if (event.key === videoConsentKey || event.key === null) {
+        applyVideoConsent(readVideoConsent(event.newValue));
+      }
+    }
+    window.addEventListener('storage', syncVideoConsent);
+
+    const skillsVisibility = new IntersectionObserver(([entry]) => {
+      if (entry.intersectionRatio >= 0.5 && !showMoko) showMoko = true;
+    }, { threshold: 0.5 });
+    skillsVisibility.observe(skillsCopy);
+
+    function updateWorldClip() {
+      const { top, bottom } = world.getBoundingClientRect();
+      world.style.setProperty('--world-top', `${top}px`);
+      world.style.setProperty('--world-bottom', `${bottom}px`);
+    }
+
+    const stopWorldScroll = observeScroll(updateWorldClip);
+    const worldSize = new ResizeObserver(updateWorldClip);
+    worldSize.observe(world);
+    return () => {
+      skillsVisibility.disconnect();
+      stopWorldScroll();
+      worldSize.disconnect();
+      window.removeEventListener('storage', syncVideoConsent);
+    };
   });
 
   function selectLanguage(next: Language) {
@@ -54,7 +113,51 @@
   function finishIntro() {
     introActive = false;
   }
+
+  function applyVideoConsent(next: VideoConsent | null) {
+    if (videoConsent === 'allowed' && next !== 'allowed') {
+      // Destroy every player before reloading to unload the third-party API itself.
+      flushSync(() => { videoConsent = next; });
+      window.location.reload();
+    } else {
+      videoConsent = next;
+    }
+  }
+
+  async function chooseVideoConsent(next: VideoConsent, fromPreview: boolean) {
+    const withdrawing = videoConsent === 'allowed' && next === 'refused';
+    try {
+      localStorage.setItem(videoConsentKey, JSON.stringify({ choice: next, expiresAt: Date.now() + videoConsentMaxAge }));
+    } catch {
+      // The choice still takes effect for the current visit.
+    }
+    if (withdrawing && !fromPreview) try {
+      sessionStorage.setItem(videoConsentKey + ':return', '1');
+    } catch {
+      // Focus restoration on reload is optional when storage is blocked.
+    }
+    applyVideoConsent(next);
+    if (fromPreview) {
+      await tick();
+      firstVideoHeading.focus({ preventScroll: true });
+    }
+  }
 </script>
+
+{#snippet videoConsentCopy()}
+  <div class="video-consent-copy">
+    <p class="video-consent-title">{copy.videoConsent.title}</p>
+    <p>{copy.videoConsent.description}</p>
+    <a href="https://policies.google.com/privacy?hl={language}">{copy.videoConsent.policy}</a>
+  </div>
+{/snippet}
+
+{#snippet videoChoices(fromPreview: boolean)}
+  <div class="video-choices">
+    <button type="button" onclick={() => chooseVideoConsent('allowed', fromPreview)}>{copy.videoConsent.allow}</button>
+    <button type="button" onclick={() => chooseVideoConsent('refused', fromPreview)}>{copy.videoConsent.refuse}</button>
+  </div>
+{/snippet}
 
 <svelte:head>
   <title>{title}</title>
@@ -90,9 +193,8 @@
   <header>
     <a class="skip-content" href="#jeu">{copy.skipToContent}</a>
     <div class="header-controls">
-      <button type="button" class="header-beta" disabled aria-label={copy.joinBeta} aria-describedby="beta-status">
-        <span class="beta-label-full">{copy.joinBeta}</span>
-        <span class="beta-label-short">{copy.betaShort}</span>
+      <button type="button" class="header-beta" aria-haspopup="dialog" onclick={(event) => betaDialog?.open(event.currentTarget)} aria-describedby="beta-status">
+        {copy.joinBeta}
       </button>
       <button type="button" class:moko-visible={showMoko} onclick={() => showMoko = !showMoko}>
         {showMoko ? copy.hideMoko : copy.showMoko}
@@ -101,13 +203,14 @@
     </div>
   </header>
 
-  <div class="world">
+  <main>
+  <div class="world" bind:this={world}>
     <JungleBackdrop active={introActive} elapsed={introElapsed} bind:plane={treePlane} {language} />
     {#if showMoko}
       <MokoLiana bind:this={moko} {introActive} {introElapsed} {treePlane}
         bind:skillsState />
     {/if}
-  <main id="jeu" tabindex="-1" class:awaitingReveal={introReveal === 0} style:--intro-reveal={introReveal}>
+  <div id="jeu" tabindex="-1" class="immersive-content" class:awaitingReveal={introReveal === 0} style:--intro-reveal={introReveal}>
     <section id="accueil" class="intro" class:opening={introActive} aria-labelledby="title">
       <CinematicIntro active={introActive} onFrame={(elapsed) => { introElapsed = elapsed; }} onFinish={finishIntro} skipLabel={copy.skip} />
       <div class="reading hero-copy">
@@ -120,9 +223,10 @@
         </h1>
         <p>{copy.intro}</p>
         <div class="hero-actions">
-          <button type="button" class="hero-link" disabled aria-describedby="beta-status">{copy.joinBeta}</button>
+          <button type="button" class="hero-link" aria-haspopup="dialog" aria-describedby="beta-status"
+            onclick={(event) => betaDialog?.open(event.currentTarget)}>{copy.joinBeta}</button>
           <small class="beta-details">{copy.betaDetails}</small>
-          <small class="beta-status" id="beta-status">{copy.betaStatus}</small>
+          <small class="beta-status" id="beta-status">{betaStatus}</small>
         </div>
       </div>
     </section>
@@ -144,13 +248,19 @@
 
     <section id="aventure" class="adventure" aria-labelledby="aventure-title">
       <div class="adventure-copy">
-        <h2 id="aventure-title">{copy.adventure.title}</h2>
+        <h2 id="aventure-title" tabindex="-1" bind:this={firstVideoHeading}>{copy.adventure.title}</h2>
         <p><strong>{copy.adventure.tagline}</strong></p>
         <p>{copy.adventure.description}</p>
       </div>
       <div class="reading adventure-video">
         <AdventureVideo id="aSYfR35iuqI" title={copy.adventure.title}
-          poster={asset('video/adventure.jpg')} labels={copy.adventure} />
+          poster={asset('video/adventure.jpg')} labels={copy.adventure} allowed={videosAllowed} />
+        {#if videoConsent === null}
+          <div class="video-consent-panel">
+            {@render videoConsentCopy()}
+            {@render videoChoices(true)}
+          </div>
+        {/if}
       </div>
     </section>
 
@@ -173,7 +283,7 @@
       </ul>
       <div class="reading adventure-video">
         <AdventureVideo id="je1Ffg7VBxA" title={copy.difficulties.teaser}
-          poster={asset('video/difficulties.jpg')} labels={{ ...copy.adventure, play: copy.difficulties.play }} />
+          poster={asset('video/difficulties.jpg')} labels={{ ...copy.adventure, play: copy.difficulties.play }} allowed={videosAllowed} />
       </div>
     </section>
 
@@ -185,12 +295,12 @@
       </div>
       <div class="reading adventure-video">
         <AdventureVideo id="8Bcc1L_52IE" title={copy.endgame.title}
-          poster={asset('video/endgame.jpg')} labels={{ ...copy.adventure, play: copy.endgame.play }} />
+          poster={asset('video/endgame.jpg')} labels={{ ...copy.adventure, play: copy.endgame.play }} allowed={videosAllowed} />
       </div>
     </section>
 
     <section id="skills" class="skills-slot" aria-labelledby="skills-title">
-      <div class="skills-copy">
+      <div class="skills-copy" bind:this={skillsCopy}>
         <h2 id="skills-title">{copy.skills.title}</h2>
         <p>{copy.skills.description}</p>
         <p>{copy.skills.more}</p>
@@ -200,8 +310,54 @@
         </div>
       </div>
     </section>
-  </main>
   </div>
+  </div>
+
+    <section id="au-dela-de-la-demo" class="beyond-demo" aria-labelledby="beyond-demo-title">
+      <div class="beyond-demo-copy">
+        <h2 id="beyond-demo-title">{copy.beyondDemo.title}</h2>
+        <p><strong>{copy.beyondDemo.tagline}</strong></p>
+        <p>{copy.beyondDemo.intro}</p>
+        <p>{copy.beyondDemo.preview}</p>
+      </div>
+      <div class="reading">
+        <CanopyGallery labels={copy.gallery} shots={[
+          { src: asset('images/beyond-demo/01-mangrove-exploration.webp'), ...copy.beyondDemo.mangrove, width: 1600, height: 900 },
+          { src: asset('images/beyond-demo/02-temple-bone-tunnel.webp'), ...copy.beyondDemo.passage, width: 1600, height: 900 },
+          { src: asset('images/beyond-demo/03-temple-interior-platforming.webp'), ...copy.beyondDemo.temple, width: 1600, height: 900 },
+          { src: asset('images/beyond-demo/04-arena-entrance.webp'), ...copy.beyondDemo.arena, width: 1600, height: 900 }
+        ]} />
+      </div>
+    </section>
+    <BetaLaunchSection copy={copy.betaLaunch} joinBeta={copy.joinBeta} status={betaStatus}
+      openBeta={(trigger) => betaDialog?.open(trigger)} />
+  </main>
+  <footer class="site-footer">
+    <nav class="footer-social" aria-label={copy.socialLinks.label}>
+      <a href="https://www.tiktok.com/@islandevolution2d" target="_blank" rel="noopener noreferrer"
+        aria-label={copy.socialLinks.tiktok}>TikTok</a>
+      <a href="https://www.youtube.com/@stephanemorel3306" target="_blank" rel="noopener noreferrer"
+        aria-label={copy.socialLinks.youtube}>
+        <img src={asset('social/youtube-icon.png')} alt="" width="32" height="32" loading="lazy" decoding="async" />
+        YouTube
+      </a>
+    </nav>
+    <div class="footer-legal">
+      <a href={privacyUrl}>{copy.betaApplication.privacy}</a>
+      <a href={`${resolve('/mentions-legales')}/?lang=${language}`}>{copy.legalNotice}</a>
+    </div>
+    <details class="footer-video-preferences">
+      <summary bind:this={videoPreferences}>{copy.videoConsent.preferences}</summary>
+      <div class="video-consent-panel">
+        <p role="status">{copy.videoConsent[videoConsent ?? 'undecided']}</p>
+        {@render videoConsentCopy()}
+        {@render videoChoices(false)}
+      </div>
+    </details>
+    <a class="footer-contact" href={`mailto:${privacyContact}`}>{privacyContact}</a>
+    <small class="footer-copyright">{copy.footerCopyright}</small>
+  </footer>
+  <BetaApplicationDialog bind:this={betaDialog} {language} {privacyUrl} copy={copy.betaApplication} status={betaStatus} />
 </div>
 
 <style>
@@ -310,11 +466,13 @@
   }
 
   .header-controls .header-beta:focus-visible { border-color: #f0cf84; }
-  .beta-label-short { display: none; }
-
   @media (max-width: 480px) {
-    .beta-label-full { display: none; }
-    .beta-label-short { display: inline; }
+    .header-controls > button:not(.header-beta) {
+      min-width: 44px;
+      padding-inline: .45rem;
+    }
+
+    .header-controls .header-beta { padding-inline: .45rem; }
   }
 
   .header-controls :global(button[aria-pressed='true']::after) {
@@ -337,7 +495,7 @@
     isolation: isolate;
   }
 
-  main {
+  .immersive-content {
     position: relative;
     z-index: 4;
     display: flex;
@@ -449,8 +607,6 @@
     text-decoration: none;
   }
 
-  .hero-link:disabled, .header-controls .header-beta:disabled { cursor: default; }
-
   .beta-details, .beta-status {
     color: #fff2d8;
     text-shadow: 0 1px 2px #07140c, 0 0 5px #07140c, 0 0 9px #07140c;
@@ -491,6 +647,46 @@
   .canopy-copy h2 + p { margin-top: 1rem; }
   .adventure-copy { max-width: 42rem; }
   .adventure-video { max-width: 52rem; margin-top: .9rem; }
+
+  .video-consent-panel {
+    display: grid;
+    gap: .5rem;
+    padding: .55rem .7rem;
+    border: 1px solid #b69a5980;
+    border-radius: .55rem;
+    background: #142019;
+    color: #fff2dc;
+    font-size: .85rem;
+    line-height: 1.35;
+    text-align: start;
+  }
+  .adventure-video .video-consent-panel { margin-top: .45rem; }
+  .video-consent-copy { min-width: 0; }
+  .video-consent-panel p { max-width: none; margin: 0; color: inherit; font-size: inherit; line-height: inherit; }
+  .video-consent-panel .video-consent-title { margin-bottom: .15rem; color: #f1cf8e; font-weight: 750; }
+  .video-consent-panel a { color: #f1cf8e; font-size: .78rem; }
+  .video-choices {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .45rem;
+  }
+  .video-choices button {
+    min-height: 44px;
+    padding: .4rem .55rem;
+    border: 1px solid #d4b473;
+    border-radius: .45rem;
+    background: #213528;
+    color: #fff2dc;
+    font: inherit;
+    font-weight: 650;
+    cursor: pointer;
+  }
+  .video-choices button:hover { background: #2d4536; }
+  @media (min-width: 740px) {
+    .video-consent-panel { grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: .45rem .85rem; }
+    .video-consent-panel > [role='status'] { grid-column: 1 / -1; }
+    .video-choices { grid-template-columns: repeat(2, minmax(6.6rem, 1fr)); }
+  }
 
   .difficulty-list {
     display: grid;
@@ -539,6 +735,60 @@
     background: linear-gradient(to bottom, transparent calc(100% - var(--skills-tail) - 9rem),
       rgb(21 19 13 / .38) calc(100% - var(--skills-tail) - 4.5rem), #101411 calc(100% - var(--skills-tail)));
   }
+
+  .site-footer {
+    display: grid;
+    justify-items: center;
+    gap: 1.2rem;
+    padding: 1.75rem var(--content-gutter);
+    border-top: 1px solid #f1cf8e33;
+    text-align: center;
+    background: #101411;
+  }
+  .site-footer a { color: #f1cf8e; }
+  .footer-social {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .75rem;
+    width: min(100%, 18rem);
+  }
+  .footer-legal {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: .5rem .75rem;
+  }
+  .footer-social a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .55rem;
+    min-height: 44px;
+    padding-inline: .85rem;
+    border: 1px solid #b69a5966;
+    border-radius: .55rem;
+    background: #18221a;
+    font-weight: 650;
+    text-decoration: none;
+  }
+  .footer-social a:hover { border-color: #f1cf8e; background: #233024; }
+  .site-footer a:focus-visible { outline: 2px solid #f1cf8e; outline-offset: 4px; }
+  .footer-legal a { font-size: .92rem; text-underline-offset: .18em; }
+  .footer-video-preferences { width: min(100%, 36rem); font-size: .92rem; }
+  .footer-video-preferences summary { color: #f1cf8e; cursor: pointer; text-underline-offset: .18em; text-decoration: underline; }
+  .footer-video-preferences .video-consent-panel { margin-top: .7rem; }
+  .site-footer .footer-contact { color: #d8cbad; font-size: .9rem; overflow-wrap: anywhere; text-underline-offset: .18em; }
+  .footer-copyright { color: #adb5a4; font-size: .8rem; line-height: 1.45; }
+
+  .beyond-demo { background: #101411; }
+
+  .beyond-demo-copy {
+    max-width: 38rem;
+    margin-inline: auto;
+    text-align: center;
+  }
+
+  .beyond-demo-copy p { margin: .75rem auto 0; }
 
   .skills-copy {
     position: absolute;

@@ -9,3 +9,4 @@ build/
 !.env.example
 BACKUPS/
 *.bak
+/docs/ANALYSE_INTERET_LEGITIME_BETA.md

@@ -1,0 +1,101 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {
+  betaApplicationDestination, betaApplicationsOpen, betaEmailMaxLength, betaNicknameMaxLength,
+  buildBetaMailto, validateBetaApplication
+} from '../src/lib/beta-application.ts';
+
+const application = { nickname: '', email: 'explorer+android@example.org', androidConfirmed: true, policyRead: true };
+
+test('a Google Play email is required and is not restricted to Gmail', () => {
+  assert.equal(validateBetaApplication({ ...application, email: '' }).email, 'missing');
+  for (const email of [
+    'explorer', '@example.org', 'explorer@-example.org', 'two addresses@example.org',
+    ' explorer@example.org ', 'é@example.org', 'explorer@' + 'a'.repeat(64) + '.org'
+  ]) {
+    assert.equal(validateBetaApplication({ ...application, email }).email, 'invalid');
+    assert.equal(buildBetaMailto('fr', { ...application, email }), undefined);
+  }
+  assert.deepEqual(validateBetaApplication(application), { email: undefined, nickname: undefined, androidConfirmed: false, policyRead: false });
+  assert.equal(validateBetaApplication({ ...application, email: 'explorer@xn--caf-dma.example' }).email, undefined);
+});
+
+test('privacy acknowledgement is required and a nickname is optional', () => {
+  assert.equal(validateBetaApplication({ ...application, policyRead: false }).policyRead, true);
+  assert.equal(buildBetaMailto('en', { ...application, policyRead: false }), undefined);
+  assert.equal(buildBetaMailto('en', { ...application, email: '' }), undefined);
+  for (const [language, fallback] of [['fr', 'Pseudo : Non renseigné'], ['en', 'Nickname: Not provided']]) {
+    const draft = new URL(buildBetaMailto(language, application));
+    assert.ok(draft.searchParams.get('body').includes(fallback));
+  }
+});
+
+test('mailto encodes the French and English subjects and bodies independently', () => {
+  const nickname = 'Éléonore 🧑‍🚀 <b>Moko</b> & ? # + %';
+  for (const [language, subject, body] of [
+    ['fr', 'Candidature bêta Android — MOKO Island Evolution', [
+      'Bonjour,', '', 'Je souhaite participer à la bêta Android de MOKO – Island Evolution.', '',
+      `Pseudo : ${nickname}`, 'Adresse Google Play : explorer+android@example.org', '',
+      "Je confirme disposer d'un appareil Android avec accès à Google Play.",
+      "J'ai pris connaissance de la politique de confidentialité."
+    ]],
+    ['en', 'Android Beta Application — MOKO Island Evolution', [
+      'Hello,', '', 'I would like to participate in the Android beta of MOKO – Island Evolution.', '',
+      `Nickname: ${nickname}`, 'Google Play email: explorer+android@example.org', '',
+      'I confirm that I have an Android device with access to Google Play.',
+      'I have read the Privacy Policy.'
+    ]]
+  ]) {
+    const draft = new URL(buildBetaMailto(language, { ...application, nickname }));
+    assert.equal(draft.protocol, 'mailto:');
+    assert.equal(draft.pathname, 'moko.islandevolution@outlook.com');
+    assert.equal(draft.hash, '');
+    assert.deepEqual([...draft.searchParams], [['subject', subject], ['body', body.join('\r\n')]]);
+  }
+});
+
+test('address and nickname limits are enforced directly by the generator', () => {
+  const local = 'a'.repeat(64) + '@';
+  const domain = ['b'.repeat(63), 'c'.repeat(63), 'd'.repeat(63)].join('.');
+  const email = local + domain.slice(0, betaEmailMaxLength - local.length);
+  const nickname = '🥥'.repeat(betaNicknameMaxLength / 2);
+  assert.ok(buildBetaMailto('fr', { ...application, email, nickname }));
+  const oversizedEmail = { ...application, email: 'a' + email };
+  const oversizedNickname = { ...application, nickname: nickname + 'x' };
+  assert.equal(validateBetaApplication(oversizedEmail).email, 'tooLong');
+  assert.equal(validateBetaApplication(oversizedNickname).nickname, 'tooLong');
+  assert.equal(buildBetaMailto('fr', oversizedEmail), undefined);
+  assert.equal(buildBetaMailto('en', oversizedNickname), undefined);
+});
+
+test('control characters, line separators and lone surrogates are rejected without cleanup', () => {
+  for (const character of ['\r', '\n', '\r\n', '\t', '\x00', '\x7f', '\x85', '\u2028', '\u2029', '\ud800', '\udfff']) {
+    const email = { ...application, email: application.email + character };
+    const nickname = { ...application, nickname: character + 'Moko' };
+    assert.equal(validateBetaApplication(email).email, 'invalid');
+    assert.equal(validateBetaApplication(nickname).nickname, 'invalid');
+    assert.equal(buildBetaMailto('fr', email), undefined);
+    assert.equal(buildBetaMailto('en', nickname), undefined);
+  }
+});
+
+test('recruitment state gates valid applications and never bypasses validation', () => {
+  for (const language of ['fr', 'en']) {
+    const destination = betaApplicationDestination(language, application);
+    assert.equal(destination, betaApplicationsOpen ? buildBetaMailto(language, application) : undefined);
+    if (betaApplicationsOpen) {
+      const draft = new URL(destination);
+      assert.equal(draft.pathname, 'moko.islandevolution@outlook.com');
+      const emailLabel = language === 'fr' ? 'Adresse Google Play : ' : 'Google Play email: ';
+      assert.ok(draft.searchParams.get('body').split('\r\n').includes(emailLabel + application.email));
+    }
+    assert.equal(betaApplicationDestination(language, { ...application, policyRead: false }), undefined);
+    for (const androidConfirmed of [false, undefined]) {
+      const incomplete = { ...application, androidConfirmed };
+      assert.equal(validateBetaApplication(incomplete).androidConfirmed, true);
+      assert.equal(buildBetaMailto(language, incomplete), undefined);
+      assert.equal(betaApplicationDestination(language, incomplete), undefined);
+    }
+    assert.equal(betaApplicationDestination(language, { ...application, email: 'invalid' }), undefined);
+  }
+});
