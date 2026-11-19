@@ -15,7 +15,7 @@ export function readVideoConsent(raw: string | null, now = Date.now()): VideoCon
     )
       return choice;
   } catch {
-    // An unavailable or invalid choice must not load the players.
+    // Un choix absent ou invalide ne doit jamais charger les lecteurs.
   }
   return null;
 }

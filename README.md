@@ -36,7 +36,16 @@ The website offers an immersive introduction to the game's world, gameplay foota
 
 ## Technologies
 
-**SvelteKit · TypeScript · SCSS · GitHub Pages**
+**SvelteKit · TypeScript · CSS · GitHub Pages**
+
+## Documentation de maintenance
+
+- [Architecture du site](docs/ARCHITECTURE.md)
+- [Guide de maintenance](docs/GUIDE_MAINTENANCE.md)
+- [Dépannage](docs/DEPANNAGE.md)
+- [Déploiement GitHub Pages](docs/DEPLOIEMENT.md)
+- [Formulaire bêta](docs/FORMULAIRE_BETA.md)
+- [Audit V1.7](docs/AUDIT_V17.md)
 
 ---
 

@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => {
         prerender: {
           entries: site ? ['*'] : ['/', '/robots.txt'],
           handleUnseenRoutes({ routes, message }) {
-            // The sitemap has no public URLs until the publication address is configured.
+            // Le sitemap reste indisponible tant que l’adresse publique est absente.
             if (site || routes.some((route) => route !== '/sitemap.xml')) {
               throw new Error(message);
             }

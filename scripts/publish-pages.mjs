@@ -61,7 +61,7 @@ function publishBuild() {
       origin,
       checkout
     ]);
-    // The clone supplies the parent commit and an empty index. Stage the build as the entire new tree.
+    // Le clone fournit le commit parent et un index vide. Le build forme tout le nouvel arbre Git.
     const buildTree = [
       '-C',
       buildDirectory,

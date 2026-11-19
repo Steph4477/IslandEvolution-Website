@@ -81,7 +81,7 @@ export function createYouTubeFrame(id: string, title: string) {
   return iframe;
 }
 
-// Shared by all embeds. Manual playback can replace the current owner.
+// Un seul lecteur à la fois. Un lancement manuel peut interrompre le lecteur actif.
 let owner: (() => void) | undefined;
 const waiting = new Set<() => void>();
 
