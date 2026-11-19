@@ -555,67 +555,115 @@
       schedule();
     }
 
+    function advanceIntro(now: number) {
+      if (!introActive || motion.matches) {
+        mode = 'rope';
+        drawRope();
+        if (!syncSkills(now) && progress > 0) armRest();
+        return;
+      }
+      const { landing, rejoin, end } = introTiming;
+      const elapsed = introElapsed;
+      const branch = project(tree.restPoints[0].feetPx);
+      if (branch && elapsed < landing) {
+        const size = position.offsetWidth;
+        const outside = { x: -size * 1.25 - 10, y: -size * 0.5 - 30 };
+        const departure = landing - introArrivalDuration / JUMP_SPEED_MULTIPLIER;
+        const t = introProgress(elapsed, departure, landing);
+        const arriving = {
+          x: mix(outside.x, branch.x, t * t * (3 - 2 * t)),
+          y: mix(outside.y, branch.y, t ** 2.1)
+        };
+        // Conserver le même instant relatif de changement de pose dans le bond.
+        const pose = (t * introArrivalDuration) / introArrivalPoseDuration;
+        paint(
+          arriving,
+          'jump_down',
+          pose * mokoAnimations.jump_down.animationPlayer.durationMs,
+          false,
+          false,
+          introCamera(elapsed).scale
+        );
+      } else if (branch && elapsed < rejoin) {
+        paint(branch, 'idle', undefined, false, false, introCamera(elapsed).scale);
+      } else if (branch) {
+        const catchTime = rejoin + (end - rejoin) / JUMP_SPEED_MULTIPLIER;
+        const t = introProgress(elapsed, rejoin, catchTime);
+        if (t === 1) {
+          drawRope();
+          schedule();
+          return;
+        }
+        const target = rope();
+        introFlight ??= plan(branch, target, rejoin, true) ?? {
+          from: branch,
+          to: target,
+          lift: 24,
+          start: rejoin,
+          duration: catchTime - rejoin
+        };
+        const point = arc(introFlight, t, target);
+        // Aligner la main de la dernière image de saut avec celle de la pose de grimpe.
+        const hand = {
+          x: idle.x + (idle.scale * 216) / 320,
+          y: idle.y + (idle.scale * 214) / 320
+        };
+        const gripBlend = introProgress(t, 0.72, 1) * position.offsetWidth;
+        point.x += gripBlend * (hand.x - foot.x + gripFoot.x - handX);
+        point.y += gripBlend * (handY - gripFoot.y - hand.y + foot.y);
+        paint(point, 'jump_up', t * mokoAnimations.jump_up.animationPlayer.durationMs, true);
+      }
+      schedule();
+    }
+
+    function advanceNavigationFlight(now: number, activeFlight: Flight) {
+      const t = clamp((now - activeFlight.start) / activeFlight.duration, 0, 1);
+      if (mode === 'out') {
+        if (t === 1) {
+          mode = 'rest';
+          idleAt(activeFlight.to);
+          flight = undefined;
+        } else {
+          paint(
+            arc(activeFlight, t),
+            'jump_down',
+            t * mokoAnimations.jump_down.animationPlayer.durationMs
+          );
+          schedule();
+        }
+      } else if (t === 1) {
+        mode = 'rope';
+        flight = undefined;
+        footerCatch = undefined;
+        drawRope();
+        if (!syncSkills(now) && restDue) armRest();
+      } else {
+        const target = rope();
+        let destination = target;
+        if (footerCatch) {
+          // Absorber les grands écarts de scroll, puis rejoindre la prise réelle.
+          const follow = 1 - Math.exp(-(now - footerCatch.updated) / 65);
+          footerCatch.target = {
+            x: mix(footerCatch.target.x, target.x, follow),
+            y: mix(footerCatch.target.y, target.y, follow)
+          };
+          footerCatch.updated = now;
+          const catchUp = introProgress(t, 0.7, 1);
+          destination = {
+            x: mix(footerCatch.target.x, target.x, catchUp),
+            y: mix(footerCatch.target.y, target.y, catchUp)
+          };
+        }
+        const point = arc(activeFlight, t, destination);
+        paint(point, 'jump_up', t * mokoAnimations.jump_up.animationPlayer.durationMs, true);
+        schedule();
+      }
+    }
+
     function run(now: number) {
       frame = 0;
       if (mode === 'intro') {
-        if (!introActive || motion.matches) {
-          mode = 'rope';
-          drawRope();
-          if (!syncSkills(now) && progress > 0) armRest();
-          return;
-        }
-        const { landing, rejoin, end } = introTiming;
-        const elapsed = introElapsed;
-        const branch = project(tree.restPoints[0].feetPx);
-        if (branch && elapsed < landing) {
-          const size = position.offsetWidth;
-          const outside = { x: -size * 1.25 - 10, y: -size * 0.5 - 30 };
-          const departure = landing - introArrivalDuration / JUMP_SPEED_MULTIPLIER;
-          const t = introProgress(elapsed, departure, landing);
-          const arriving = {
-            x: mix(outside.x, branch.x, t * t * (3 - 2 * t)),
-            y: mix(outside.y, branch.y, t ** 2.1)
-          };
-          // Conserver le même instant relatif de changement de pose dans le bond.
-          const pose = (t * introArrivalDuration) / introArrivalPoseDuration;
-          paint(
-            arriving,
-            'jump_down',
-            pose * mokoAnimations.jump_down.animationPlayer.durationMs,
-            false,
-            false,
-            introCamera(elapsed).scale
-          );
-        } else if (branch && elapsed < rejoin) {
-          paint(branch, 'idle', undefined, false, false, introCamera(elapsed).scale);
-        } else if (branch) {
-          const catchTime = rejoin + (end - rejoin) / JUMP_SPEED_MULTIPLIER;
-          const t = introProgress(elapsed, rejoin, catchTime);
-          if (t === 1) {
-            drawRope();
-            schedule();
-            return;
-          }
-          const target = rope();
-          introFlight ??= plan(branch, target, rejoin, true) ?? {
-            from: branch,
-            to: target,
-            lift: 24,
-            start: rejoin,
-            duration: catchTime - rejoin
-          };
-          const point = arc(introFlight, t, target);
-          // Aligner la main de la dernière image de saut avec celle de la pose de grimpe.
-          const hand = {
-            x: idle.x + (idle.scale * 216) / 320,
-            y: idle.y + (idle.scale * 214) / 320
-          };
-          const gripBlend = introProgress(t, 0.72, 1) * position.offsetWidth;
-          point.x += gripBlend * (hand.x - foot.x + gripFoot.x - handX);
-          point.y += gripBlend * (handY - gripFoot.y - hand.y + foot.y);
-          paint(point, 'jump_up', t * mokoAnimations.jump_up.animationPlayer.durationMs, true);
-        }
-        schedule();
+        advanceIntro(now);
       } else if (mode === 'skills-idle') {
         syncSkills(now);
         const landing = project(skillsGround);
@@ -654,47 +702,7 @@
         if (t === 1) startReturn(now);
         else schedule();
       } else if ((mode === 'out' || mode === 'return') && flight) {
-        const t = clamp((now - flight.start) / flight.duration, 0, 1);
-        if (mode === 'out') {
-          if (t === 1) {
-            mode = 'rest';
-            idleAt(flight.to);
-            flight = undefined;
-          } else {
-            paint(
-              arc(flight, t),
-              'jump_down',
-              t * mokoAnimations.jump_down.animationPlayer.durationMs
-            );
-            schedule();
-          }
-        } else if (t === 1) {
-          mode = 'rope';
-          flight = undefined;
-          footerCatch = undefined;
-          drawRope();
-          if (!syncSkills(now) && restDue) armRest();
-        } else {
-          const target = rope();
-          let destination = target;
-          if (footerCatch) {
-            // Absorber les grands écarts de scroll, puis rejoindre la prise réelle.
-            const follow = 1 - Math.exp(-(now - footerCatch.updated) / 65);
-            footerCatch.target = {
-              x: mix(footerCatch.target.x, target.x, follow),
-              y: mix(footerCatch.target.y, target.y, follow)
-            };
-            footerCatch.updated = now;
-            const catchUp = introProgress(t, 0.7, 1);
-            destination = {
-              x: mix(footerCatch.target.x, target.x, catchUp),
-              y: mix(footerCatch.target.y, target.y, catchUp)
-            };
-          }
-          const point = arc(flight, t, destination);
-          paint(point, 'jump_up', t * mokoAnimations.jump_up.animationPlayer.durationMs, true);
-          schedule();
-        }
+        advanceNavigationFlight(now, flight);
       }
     }
 
