@@ -67,8 +67,8 @@ export const translations = {
       emailHelp: "Indique l'adresse du compte Google utilisé sur ton téléphone Android pour télécharger des applications sur Google Play. Pas forcément une adresse Gmail.",
       policyRead: "J'ai pris connaissance de la politique de confidentialité.",
       privacy: 'Politique de confidentialité',
-      submit: 'Envoyer ma candidature',
-      mailHelp: "L'envoi ouvrira ta messagerie pour confirmer l'envoi de ta candidature.",
+      submit: "Ouvrir l'e-mail de candidature",
+      mailHelp: "Votre messagerie s'ouvrira avec un e-mail prérempli. Vérifiez-le, puis envoyez-le pour finaliser votre candidature.",
       close: 'Fermer',
       errors: {
         missing: 'Indique ton adresse Google Play.',
@@ -191,8 +191,8 @@ export const translations = {
       emailHelp: "Enter the email address of the Google account you use on your Android phone to download apps from Google Play. It doesn't have to be a Gmail address.",
       policyRead: 'I have read the Privacy Policy.',
       privacy: 'Privacy Policy',
-      submit: 'Send my application',
-      mailHelp: 'Your email app will open so you can confirm and send your application.',
+      submit: 'Open application email',
+      mailHelp: 'Your email app will open with a pre-filled message. Review it, then send it to complete your application.',
       close: 'Close',
       errors: {
         missing: 'Enter your Google Play email.',

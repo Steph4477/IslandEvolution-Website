@@ -157,9 +157,9 @@
     <small id="beta-privacy"><a href={privacyUrl}>{copy.privacy}</a></small>
     <div class="action">
       <button type="submit" disabled={!betaApplicationsOpen}
-        aria-describedby="beta-dialog-status beta-mail-help">{copy.submit}</button>
-      <strong id="beta-dialog-status">{status}</strong>
+        aria-describedby="beta-mail-help beta-dialog-status">{copy.submit}</button>
       <small id="beta-mail-help">{copy.mailHelp}</small>
+      <strong id="beta-dialog-status">{status}</strong>
     </div>
   </form>
 </dialog>
