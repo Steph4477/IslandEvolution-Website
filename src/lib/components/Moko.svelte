@@ -11,7 +11,7 @@
   const sheet = $derived(frame.sheet);
   const render = $derived(mokoAnimations[clip].render);
   const offset = (start: number, size: number, total: number) =>
-    total === size ? '0%' : start / (total - size) * 100 + '%';
+    total === size ? '0%' : (start / (total - size)) * 100 + '%';
 
   onMount(() => {
     const preference = matchMedia('(prefers-reduced-motion: reduce)');
@@ -53,7 +53,7 @@
   data-clip={clip}
   data-frame={frame.rect[0] / frame.rect[2]}
   style:--sheet-url={'url("' + asset(frame.path) + '")'}
-  style:--sheet-size={sheet.width / width * 100 + '% ' + sheet.height / height * 100 + '%'}
+  style:--sheet-size={(sheet.width / width) * 100 + '% ' + (sheet.height / height) * 100 + '%'}
   style:--frame-position={offset(x, width, sheet.width) + ' ' + offset(y, height, sheet.height)}
   style:--sprite-transform={`translate(${render.x * 100}%, ${render.y * 100}%) scale(${render.scale})`}
 ></div>

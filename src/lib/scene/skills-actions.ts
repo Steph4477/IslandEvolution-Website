@@ -11,7 +11,7 @@ export function skillsJumpLift(progress: number) {
 }
 
 export function skillsJumpPeak(spriteSize: number, clearance: number) {
-  const previousPeak = Math.min(132, spriteSize * .54) * .62;
+  const previousPeak = Math.min(132, spriteSize * 0.54) * 0.62;
   return Math.max(0, Math.min(previousPeak * 1.5, clearance));
 }
 

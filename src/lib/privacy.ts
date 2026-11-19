@@ -7,9 +7,11 @@ export const privacyCopy = {
   fr: {
     title: 'Politique de confidentialité',
     back: 'Retour au site',
-    draft: 'Cette politique explique comment les données des candidats à la bêta Android sont utilisées, conservées et supprimées.',
+    draft:
+      'Cette politique explique comment les données des candidats à la bêta Android sont utilisées, conservées et supprimées.',
     controllerTitle: 'Responsable du traitement',
-    controller: 'Stéphane Morel, créateur indépendant de MOKO - Island Evolution, est le responsable du traitement des candidatures. Il agit à titre personnel, sans entreprise constituée. Contact pour la confidentialité et l’exercice de vos droits',
+    controller:
+      'Stéphane Morel, créateur indépendant de MOKO - Island Evolution, est le responsable du traitement des candidatures. Il agit à titre personnel, sans entreprise constituée. Contact pour la confidentialité et l’exercice de vos droits',
     sections: [
       {
         title: 'Vidéos YouTube',
@@ -45,14 +47,27 @@ export const privacyCopy = {
     ],
     retentionTitle: 'Conservation et suppression',
     retention: [
-      { group: 'Candidatures non retenues', deadline: 'Suppression 3 mois après la clôture du recrutement.' },
-      { group: 'Liste d’attente', deadline: 'Suppression à la clôture de la bêta ou 6 mois après la clôture du recrutement, selon la première échéance atteinte.' },
-      { group: 'Testeurs sélectionnés', deadline: 'Conservation pendant la bêta et suppression 3 mois après sa fin.' }
+      {
+        group: 'Candidatures non retenues',
+        deadline: 'Suppression 3 mois après la clôture du recrutement.'
+      },
+      {
+        group: 'Liste d’attente',
+        deadline:
+          'Suppression à la clôture de la bêta ou 6 mois après la clôture du recrutement, selon la première échéance atteinte.'
+      },
+      {
+        group: 'Testeurs sélectionnés',
+        deadline: 'Conservation pendant la bêta et suppression 3 mois après sa fin.'
+      }
     ],
-    deletion: 'Ces délais s’appliquent aux données personnelles dans Outlook, dans Excel et dans leurs éventuelles copies. Les suppressions sont effectuées manuellement à l’échéance applicable.',
+    deletion:
+      'Ces délais s’appliquent aux données personnelles dans Outlook, dans Excel et dans leurs éventuelles copies. Les suppressions sont effectuées manuellement à l’échéance applicable.',
     rightsTitle: 'Vos droits',
-    rights: 'Vous pouvez demander l’accès à vos données, leur rectification, leur effacement ou la limitation du traitement dans les conditions prévues par le RGPD. Vous pouvez vous opposer au traitement fondé sur l’intérêt légitime pour des raisons tenant à votre situation particulière. Le droit à l’effacement s’exerce sous réserve des exceptions légales applicables.',
-    exercise: 'Pour exercer vos droits, écrivez à l’adresse de contact ci-dessus en précisant votre demande. Vous pouvez également introduire une réclamation auprès de la CNIL.',
+    rights:
+      'Vous pouvez demander l’accès à vos données, leur rectification, leur effacement ou la limitation du traitement dans les conditions prévues par le RGPD. Vous pouvez vous opposer au traitement fondé sur l’intérêt légitime pour des raisons tenant à votre situation particulière. Le droit à l’effacement s’exerce sous réserve des exceptions légales applicables.',
+    exercise:
+      'Pour exercer vos droits, écrivez à l’adresse de contact ci-dessus en précisant votre demande. Vous pouvez également introduire une réclamation auprès de la CNIL.',
     complaint: 'Adresser une réclamation à la CNIL'
   },
   en: {
@@ -60,7 +75,8 @@ export const privacyCopy = {
     back: 'Back to the site',
     draft: 'This policy explains how Android beta applicants’ data is used, retained and deleted.',
     controllerTitle: 'Data controller',
-    controller: 'Stéphane Morel, the independent creator of MOKO - Island Evolution, is the controller for beta applications. He acts in a personal capacity, with no registered company. Contact for privacy questions and exercising your rights',
+    controller:
+      'Stéphane Morel, the independent creator of MOKO - Island Evolution, is the controller for beta applications. He acts in a personal capacity, with no registered company. Contact for privacy questions and exercising your rights',
     sections: [
       {
         title: 'YouTube videos',
@@ -97,13 +113,23 @@ export const privacyCopy = {
     retentionTitle: 'Retention and deletion',
     retention: [
       { group: 'Unsuccessful applicants', deadline: 'Deleted 3 months after recruitment closes.' },
-      { group: 'Waiting list', deadline: 'Deleted when the beta ends or 6 months after recruitment closes, whichever comes first.' },
-      { group: 'Selected testers', deadline: 'Kept during the beta and deleted 3 months after it ends.' }
+      {
+        group: 'Waiting list',
+        deadline:
+          'Deleted when the beta ends or 6 months after recruitment closes, whichever comes first.'
+      },
+      {
+        group: 'Selected testers',
+        deadline: 'Kept during the beta and deleted 3 months after it ends.'
+      }
     ],
-    deletion: 'These periods apply to personal data in Outlook, in Excel and in any copies. Records are deleted manually when the relevant deadline is reached.',
+    deletion:
+      'These periods apply to personal data in Outlook, in Excel and in any copies. Records are deleted manually when the relevant deadline is reached.',
     rightsTitle: 'Your rights',
-    rights: 'You can request access to your data, ask for it to be corrected or deleted, or request a restriction on processing under the GDPR. You may object to processing based on legitimate interests on grounds relating to your particular situation. The right to erasure is subject to applicable legal exceptions.',
-    exercise: 'To exercise your rights, email the address above and explain your request. You can also lodge a complaint with the CNIL, the French data protection authority.',
+    rights:
+      'You can request access to your data, ask for it to be corrected or deleted, or request a restriction on processing under the GDPR. You may object to processing based on legitimate interests on grounds relating to your particular situation. The right to erasure is subject to applicable legal exceptions.',
+    exercise:
+      'To exercise your rights, email the address above and explain your request. You can also lodge a complaint with the CNIL, the French data protection authority.',
     complaint: 'Lodge a complaint with the CNIL'
   }
 } satisfies Record<Language, object>;

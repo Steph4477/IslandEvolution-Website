@@ -2,7 +2,7 @@ import { mokoAnimations } from './moko-manifest';
 
 const pose = mokoAnimations.climb_liana.render;
 // Le cycle a des marges différentes. Aligne sa main sur celle de la pose fixe.
-const scale = pose.scale * 176 / 163;
+const scale = (pose.scale * 176) / 163;
 const frameSize = 320;
 const path = 'images/moko/climb-liana-cycle.png';
 
@@ -16,11 +16,23 @@ export const climbLianaCycle = {
     x: pose.x + (pose.scale * 200 - scale * 205) / frameSize,
     y: pose.y + (pose.scale * 165 - scale * 141) / frameSize
   },
-  frames: [0, 320, 640, 960].map((x) => ({
-    path,
-    rect: [x, 0, frameSize, frameSize],
-    sheet: { width: 1280, height: 320 },
-    durationMs: 200
-  } as const)),
-  animationPlayer: { durationMs: 800, loopMode: 1, keys: [[0, 0], [200, 1], [400, 2], [600, 3]] }
+  frames: [0, 320, 640, 960].map(
+    (x) =>
+      ({
+        path,
+        rect: [x, 0, frameSize, frameSize],
+        sheet: { width: 1280, height: 320 },
+        durationMs: 200
+      }) as const
+  ),
+  animationPlayer: {
+    durationMs: 800,
+    loopMode: 1,
+    keys: [
+      [0, 0],
+      [200, 1],
+      [400, 2],
+      [600, 3]
+    ]
+  }
 } as const;

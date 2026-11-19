@@ -36,9 +36,12 @@
 
 <svelte:head>
   <title>{copy.title} | MOKO - Island Evolution</title>
-  <meta name="description" content={language === 'fr'
-    ? 'Données utilisées pour les candidatures à la bêta Android de MOKO - Island Evolution, durées de conservation et exercice de vos droits.'
-    : 'Data used for MOKO - Island Evolution Android beta applications, retention periods and how to exercise your rights.'} />
+  <meta
+    name="description"
+    content={language === 'fr'
+      ? 'Données utilisées pour les candidatures à la bêta Android de MOKO - Island Evolution, durées de conservation et exercice de vos droits.'
+      : 'Data used for MOKO - Island Evolution Android beta applications, retention periods and how to exercise your rights.'}
+  />
   <meta name="robots" content="noindex" />
 </svelte:head>
 
@@ -84,23 +87,64 @@
 </main>
 
 <style>
-  :global(html:has(.policy)) { color-scheme: dark; background: #101411; }
-  :global(body:has(.policy)) { margin: 0; font-family: system-ui, sans-serif; color: #fff2d8; }
-  .policy { max-width: 45rem; margin-inline: auto; padding: clamp(1rem, 5vw, 3rem); line-height: 1.65; }
-  header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .75rem; }
-  h1 { font-size: clamp(1.8rem, 5vw, 3rem); line-height: 1.15; }
-  h2 { font-size: clamp(1.15rem, 3vw, 1.5rem); line-height: 1.3; }
-  section { margin-top: 2rem; }
-  .draft { border-inline-start: .2rem solid #e2be78; padding-inline-start: 1rem; }
-  a { color: #f1cf8e; overflow-wrap: anywhere; }
-  :is(a, :global(button)):focus-visible { outline: 2px solid #f1cf8e; outline-offset: 3px; }
+  :global(html:has(.policy)) {
+    color-scheme: dark;
+    background: #101411;
+  }
+  :global(body:has(.policy)) {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    color: #fff2d8;
+  }
+  .policy {
+    max-width: 45rem;
+    margin-inline: auto;
+    padding: clamp(1rem, 5vw, 3rem);
+    line-height: 1.65;
+  }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  h1 {
+    font-size: clamp(1.8rem, 5vw, 3rem);
+    line-height: 1.15;
+  }
+  h2 {
+    font-size: clamp(1.15rem, 3vw, 1.5rem);
+    line-height: 1.3;
+  }
+  section {
+    margin-top: 2rem;
+  }
+  .draft {
+    border-inline-start: 0.2rem solid #e2be78;
+    padding-inline-start: 1rem;
+  }
+  a {
+    color: #f1cf8e;
+    overflow-wrap: anywhere;
+  }
+  :is(a, :global(button)):focus-visible {
+    outline: 2px solid #f1cf8e;
+    outline-offset: 3px;
+  }
   header :global(button) {
     border: 1px solid #dce9b56b;
-    border-radius: .5rem;
+    border-radius: 0.5rem;
     background: #203e2a;
     cursor: pointer;
   }
-  header :global(button[aria-pressed='true']) { border-color: #e2be78; }
-  dt { font-weight: 700; }
-  dd { margin: .2rem 0 .8rem; }
+  header :global(button[aria-pressed='true']) {
+    border-color: #e2be78;
+  }
+  dt {
+    font-weight: 700;
+  }
+  dd {
+    margin: 0.2rem 0 0.8rem;
+  }
 </style>

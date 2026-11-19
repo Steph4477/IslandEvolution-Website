@@ -20,9 +20,7 @@ export type MokoClip = keyof typeof mokoAnimations;
 
 export function mokoFrame(name: MokoClip, elapsedMs: number) {
   const { frames, animationPlayer } = mokoAnimations[name];
-  const time = animationPlayer.loopMode === 1
-    ? elapsedMs % animationPlayer.durationMs
-    : elapsedMs;
+  const time = animationPlayer.loopMode === 1 ? elapsedMs % animationPlayer.durationMs : elapsedMs;
   const index = animationPlayer.keys.findLast(([at]) => at <= time)?.[1] ?? 0;
   return frames[index] ?? frames[0];
 }

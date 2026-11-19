@@ -7,8 +7,13 @@ export function readVideoConsent(raw: string | null, now = Date.now()): VideoCon
   if (!raw) return null;
   try {
     const { choice, expiresAt } = JSON.parse(raw) ?? {};
-    if ((choice === 'allowed' || choice === 'refused')
-      && Number.isFinite(expiresAt) && expiresAt > now && expiresAt <= now + videoConsentMaxAge) return choice;
+    if (
+      (choice === 'allowed' || choice === 'refused') &&
+      Number.isFinite(expiresAt) &&
+      expiresAt > now &&
+      expiresAt <= now + videoConsentMaxAge
+    )
+      return choice;
   } catch {
     // An unavailable or invalid choice must not load the players.
   }

@@ -34,5 +34,7 @@ const data = {
   ]
 };
 
-export const structuredData = '<script type="application/ld+json">' +
-  JSON.stringify(data).replace(/</g, '\\u003c') + '</script>';
+export const structuredData =
+  '<script type="application/ld+json">' +
+  JSON.stringify(data).replace(/</g, '\\u003c') +
+  '</script>';

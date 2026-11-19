@@ -1,7 +1,7 @@
 // Shoot/Player/Coconut/coconut.gd et réglages par défaut GodotPhysics2D.
 const step = 1 / 60;
 const gravity = 980;
-const damping = 1 - .1 * step;
+const damping = 1 - 0.1 * step;
 const lifetime = 3;
 
 export function cocoTrajectory(unitsToCss: number, right: number, bottom: number) {

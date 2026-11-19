@@ -1,13 +1,17 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { skillsGround, skillsGroundOffset, wantsSkillsGround } from '../src/lib/scene/skills-transfer.ts';
+import {
+  skillsGround,
+  skillsGroundOffset,
+  wantsSkillsGround
+} from '../src/lib/scene/skills-transfer.ts';
 
 test('Skills uses a wider exit threshold than entry', () => {
   for (const height of [780, 1024, 820]) {
-    assert.equal(wantsSkillsGround(height * .93, height, false), false);
-    assert.equal(wantsSkillsGround(height * .88, height, false), true);
-    assert.equal(wantsSkillsGround(height * .93, height, true), true);
-    assert.equal(wantsSkillsGround(height * .99, height, true), false);
+    assert.equal(wantsSkillsGround(height * 0.93, height, false), false);
+    assert.equal(wantsSkillsGround(height * 0.88, height, false), true);
+    assert.equal(wantsSkillsGround(height * 0.93, height, true), true);
+    assert.equal(wantsSkillsGround(height * 0.99, height, true), false);
   }
 });
 
@@ -17,7 +21,7 @@ test('the final crop preserves the clearing and the lower landing stays visible'
   for (const width of [360, 768]) {
     const scale = 2;
     const offset = skillsGroundOffset(0, width, scale);
-    assert.equal(350 * scale + offset, width * .6);
+    assert.equal(350 * scale + offset, width * 0.6);
     const landingX = skillsGround.x * scale + offset;
     assert(landingX > 44 && landingX < width - 44);
   }

@@ -7,13 +7,7 @@
     "coordinateSystem": "top-left, original-image pixels"
   },
   "status": "REPERES_VALIDES",
-  "layerOrder": [
-    "jungle.webp",
-    "ground.webp",
-    "tree.webp",
-    "liana.png",
-    "animated-Moko"
-  ],
+  "layerOrder": ["jungle.webp", "ground.webp", "tree.webp", "liana.png", "animated-Moko"],
   "restPoints": [
     {
       "id": "canopy_branch",

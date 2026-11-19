@@ -11,9 +11,8 @@ export function observeScroll(onPosition: (position: ScrollPosition) => void) {
     frame = 0;
     const range = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
     const offset = Math.max(0, Math.min(window.scrollY, range));
-    const direction = previous === undefined || previous === offset
-      ? 'none'
-      : offset > previous ? 'down' : 'up';
+    const direction =
+      previous === undefined || previous === offset ? 'none' : offset > previous ? 'down' : 'up';
     previous = offset;
     onPosition({ progress: range ? offset / range : 0, direction });
   }

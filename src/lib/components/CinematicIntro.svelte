@@ -1,7 +1,12 @@
 <script lang="ts">
   import { introTiming } from '../scene/intro-timeline';
 
-  let { active, onFrame, onFinish, skipLabel }: {
+  let {
+    active,
+    onFrame,
+    onFinish,
+    skipLabel
+  }: {
     active: boolean;
     onFrame: (elapsed: number) => void;
     onFinish: () => void;
@@ -57,17 +62,19 @@
     right: clamp(1rem, 4vw, 3rem);
     top: calc(var(--controls-height) + 1rem);
     min-height: 44px;
-    padding: .5rem .9rem;
+    padding: 0.5rem 0.9rem;
     border: 1px solid #c9d89f;
     border-radius: 3px;
     background: #142019;
     color: #f8f1da;
     font: inherit;
-    font-size: .85rem;
+    font-size: 0.85rem;
     cursor: pointer;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .skip { display: none; }
+    .skip {
+      display: none;
+    }
   }
 </style>

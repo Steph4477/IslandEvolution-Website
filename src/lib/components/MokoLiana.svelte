@@ -9,7 +9,15 @@
   import { onMount } from 'svelte';
   import { asset } from '$app/paths';
   import Moko from './Moko.svelte';
-  import { acceptsSkill, cocoShotTiming, jumpDuration, skillsJumpLift, skillsJumpPeak, type Skill, type SkillsState } from '../scene/skills-actions';
+  import {
+    acceptsSkill,
+    cocoShotTiming,
+    jumpDuration,
+    skillsJumpLift,
+    skillsJumpPeak,
+    type Skill,
+    type SkillsState
+  } from '../scene/skills-actions';
   import { cocoTrajectory } from '../scene/coco-trajectory';
   import { observeScroll } from '../scene/scroll-controller';
   import { skillsGround, wantsSkillsGround } from '../scene/skills-transfer';
@@ -18,7 +26,9 @@
   import { introCamera, introProgress, introTiming } from '../scene/intro-timeline';
 
   let {
-    introActive, introElapsed, treePlane,
+    introActive,
+    introElapsed,
+    treePlane,
     skillsState = $bindable<SkillsState>('unavailable')
   }: {
     introActive: boolean;
@@ -54,24 +64,31 @@
 
   function flyCoco(node: HTMLImageElement, coco: Coco) {
     const motion = matchMedia('(prefers-reduced-motion: reduce)');
-    const frames = cocoTrajectory(coco.unitsToCss,
+    const frames = cocoTrajectory(
+      coco.unitsToCss,
       document.documentElement.clientWidth - coco.x + coco.size / 2 + 1,
-      innerHeight - coco.y + coco.size / 2 + 1);
+      innerHeight - coco.y + coco.size / 2 + 1
+    );
     const duration = frames[frames.length - 1].time;
     const animation = motion.matches
       ? node.animate([{ opacity: 1 }, { opacity: 1 }], 200)
-      : node.animate(frames.map(({ x, y, time }) => ({
-          transform: 'translate3d(' + x + 'px,' + y + 'px,0)',
-          offset: duration ? time / duration : 0
-        })), { duration, fill: 'forwards' });
+      : node.animate(
+          frames.map(({ x, y, time }) => ({
+            transform: 'translate3d(' + x + 'px,' + y + 'px,0)',
+            offset: duration ? time / duration : 0
+          })),
+          { duration, fill: 'forwards' }
+        );
     const remove = () => removeCoco(coco.id);
     animation.onfinish = remove;
     motion.addEventListener('change', remove);
-    return { destroy() {
-      animation.onfinish = null;
-      animation.cancel();
-      motion.removeEventListener('change', remove);
-    } };
+    return {
+      destroy() {
+        animation.onfinish = null;
+        animation.cancel();
+        motion.removeEventListener('change', remove);
+      }
+    };
   }
 
   const cocoSprite = asset('skills/coconut.png');
@@ -83,23 +100,34 @@
   let vineScale = $state(0);
   const tileHeight = $derived((vineBottom - vineTop) * vineScale);
   const sheetWidth = $derived(1024 * vineScale);
-  const sheetLeft = $derived(railWidth * .31 - sheetWidth / 2);
+  const sheetLeft = $derived(railWidth * 0.31 - sheetWidth / 2);
 
   // Centre de la liane dans le PNG, avant son miroir vertical.
   const grips = [
-    [60, 502], [125, 505], [256, 514], [384, 541], [512, 560],
-    [640, 536], [768, 498], [896, 514], [950, 526], [999, 526]
+    [60, 502],
+    [125, 505],
+    [256, 514],
+    [384, 541],
+    [512, 560],
+    [640, 536],
+    [768, 498],
+    [896, 514],
+    [950, 526],
+    [999, 526]
   ];
   const climb = mokoAnimations.climb_liana.render;
-  const handX = climb.x + climb.scale * 200 / 320;
-  const handY = climb.y + climb.scale * 165 / 320;
-  const gripFoot = { x: climb.x + climb.scale * 180 / 320, y: climb.y + climb.scale * 245 / 320 };
+  const handX = climb.x + (climb.scale * 200) / 320;
+  const handY = climb.y + (climb.scale * 165) / 320;
+  const gripFoot = {
+    x: climb.x + (climb.scale * 180) / 320,
+    y: climb.y + (climb.scale * 245) / 320
+  };
   const idle = mokoAnimations.idle.render;
-  const foot = { x: idle.x + idle.scale * 154 / 320, y: idle.y + idle.scale * 279 / 320 };
+  const foot = { x: idle.x + (idle.scale * 154) / 320, y: idle.y + (idle.scale * 279) / 320 };
   const desktopScale = 1.5;
   const margin = tree.constraints.edgeMarginViewportPxSuggested;
   const JUMP_SPEED_MULTIPLIER = 1.5;
-  const navigationJumpDuration = .8;
+  const navigationJumpDuration = 0.8;
   const introArrivalPoseDuration = (introTiming.landing - introTiming.entry) / 1.3;
   const introArrivalDuration = introArrivalPoseDuration / 1.4;
   const mix = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -126,8 +154,16 @@
     let flight: Flight | undefined;
     let footerCatch: { target: Point; updated: number } | undefined;
     let walking: { perch: Perch; start: number; y: number } | undefined;
-    let mode: 'intro' | 'rope' | 'out' | 'return' | 'walk' | 'rest' | 'skills-out' | 'skills-idle' | 'skills-return' =
-      introActive && !motion.matches ? 'intro' : 'rope';
+    let mode:
+      | 'intro'
+      | 'rope'
+      | 'out'
+      | 'return'
+      | 'walk'
+      | 'rest'
+      | 'skills-out'
+      | 'skills-idle'
+      | 'skills-return' = introActive && !motion.matches ? 'intro' : 'rope';
     let introFlight: Flight | undefined;
     let restDue = false;
     let skillStart = 0;
@@ -139,7 +175,10 @@
 
     function jumpPoint(landing: Point, size: number, progress: number) {
       if (motion.matches) return landing;
-      const apex = skillsJumpPeak(desktop.matches ? size / desktopScale : size, landing.y - size * .44 - 80);
+      const apex = skillsJumpPeak(
+        desktop.matches ? size / desktopScale : size,
+        landing.y - size * 0.44 - 80
+      );
       return { x: landing.x, y: landing.y - apex * skillsJumpLift(progress) };
     }
 
@@ -148,10 +187,10 @@
       // Le PNG indépendant n'occupe que 70 px sur 80 en largeur.
       const size = spriteSize * idle.scale * (33 / 320) * (80 / 70);
       // Coordonnées de la main sur les poses de lancer : shoot 5 et jump_shoot 4.
-      const x = point.x + spriteSize * idle.scale * ((airborne ? 237 : 231) - 154) / 320;
-      const y = point.y + spriteSize * idle.scale * ((airborne ? 190 : 206) - 279) / 320;
+      const x = point.x + (spriteSize * idle.scale * ((airborne ? 237 : 231) - 154)) / 320;
+      const y = point.y + (spriteSize * idle.scale * ((airborne ? 190 : 206) - 279)) / 320;
       // Godot applique 1,2 sur Node2D, puis 0,5 sur le sprite de Moko.
-      const unitsToCss = spriteSize * idle.scale / (320 * 1.2 * .5);
+      const unitsToCss = (spriteSize * idle.scale) / (320 * 1.2 * 0.5);
       coconuts = [...coconuts, { id: ++nextCocoId, x, y, size, unitsToCss }];
     }
 
@@ -209,7 +248,8 @@
       const elapsed = now - skillStart;
       const size = position.offsetWidth;
       if (queuedCoco && now >= queuedCoco.time) {
-        const progress = jumpStart === undefined ? 0 : clamp((queuedCoco.time - jumpStart) / jumpDuration, 0, 1);
+        const progress =
+          jumpStart === undefined ? 0 : clamp((queuedCoco.time - jumpStart) / jumpDuration, 0, 1);
         releaseCoco(jumpPoint(landing, size, progress), size, queuedCoco.airborne);
         queuedCoco = undefined;
       }
@@ -217,9 +257,12 @@
         const progress = clamp((now - jumpStart) / jumpDuration, 0, 1);
         if (progress < 1) {
           const point = jumpPoint(landing, size, progress);
-          const pose = progress < .5 ? 'jump_up' : 'jump_down';
-          const poseTime = (progress < .5 ? progress : progress - .5) * jumpDuration;
-          if (state === 'jump_shoot' && elapsed < mokoAnimations.jump_shoot.animationPlayer.durationMs) {
+          const pose = progress < 0.5 ? 'jump_up' : 'jump_down';
+          const poseTime = (progress < 0.5 ? progress : progress - 0.5) * jumpDuration;
+          if (
+            state === 'jump_shoot' &&
+            elapsed < mokoAnimations.jump_shoot.animationPlayer.durationMs
+          ) {
             paint(point, 'jump_shoot', motion.matches ? 400 : elapsed);
           } else {
             skillsState = 'jump';
@@ -236,7 +279,11 @@
           schedule();
           return;
         }
-        if (motion.matches && state === 'shoot' && elapsed < mokoAnimations.shoot.animationPlayer.durationMs) {
+        if (
+          motion.matches &&
+          state === 'shoot' &&
+          elapsed < mokoAnimations.shoot.animationPlayer.durationMs
+        ) {
           paint(landing, 'shoot', 500);
           schedule();
           return;
@@ -260,23 +307,34 @@
       const hand = rect.top + y + size * handY;
       const textureTop = rail.getBoundingClientRect().top - vineOverscan;
       const period = tileHeight * 2;
-      const phase = period ? ((hand - textureTop) % period + period) % period : 0;
+      const phase = period ? (((hand - textureTop) % period) + period) % period : 0;
       const textureY = vineScale ? vineTop + Math.min(phase, period - phase) / vineScale : vineTop;
-      const x = railWidth * .31 + (gripX(textureY) - 512) * vineScale;
+      const x = railWidth * 0.31 + (gripX(textureY) - 512) * vineScale;
       // Moko saisit la liane depuis la droite : la main reste sur la texture
       // même lorsque celle-ci passe tout près du bord gauche.
-      return { x: rect.left + x + size * (handX - gripFoot.x),
-        y: rect.top + y + size * gripFoot.y };
+      return {
+        x: rect.left + x + size * (handX - gripFoot.x),
+        y: rect.top + y + size * gripFoot.y
+      };
     }
 
     function project(point: Point): Point | undefined {
       if (!treePlane) return;
       const rect = treePlane.getBoundingClientRect();
-      return { x: rect.left + point.x * rect.width / tree.image.width,
-        y: rect.top + point.y * rect.height / tree.image.height };
+      return {
+        x: rect.left + (point.x * rect.width) / tree.image.width,
+        y: rect.top + (point.y * rect.height) / tree.image.height
+      };
     }
 
-    function paint(point: Point, nextClip: MokoClip, time?: number, left = false, onRope = false, scale = 1) {
+    function paint(
+      point: Point,
+      nextClip: MokoClip,
+      time?: number,
+      left = false,
+      onRope = false,
+      scale = 1
+    ) {
       current = point;
       clip = nextClip;
       frameTime = time;
@@ -291,12 +349,16 @@
     function clearance(point: Point, halfWidth: number, leftEdge = 0) {
       const size = position.offsetWidth;
       const top = document.querySelector('header')?.getBoundingClientRect().bottom ?? 0;
-      return Math.min(point.x - size * halfWidth - leftEdge, document.documentElement.clientWidth - point.x - size * halfWidth,
-        point.y - size * .405 - top, innerHeight - point.y - size * .015);
+      return Math.min(
+        point.x - size * halfWidth - leftEdge,
+        document.documentElement.clientWidth - point.x - size * halfWidth,
+        point.y - size * 0.405 - top,
+        innerHeight - point.y - size * 0.015
+      );
     }
 
     function fits(point: Point) {
-      return clearance(point, .153) >= 0;
+      return clearance(point, 0.153) >= 0;
     }
 
     function arc(route: Flight, t: number, destination = route.to) {
@@ -307,26 +369,41 @@
       };
     }
 
-    function plan(from: Point, to: Point, start: number, returns: boolean, startsOnRope = false): Flight | undefined {
+    function plan(
+      from: Point,
+      to: Point,
+      start: number,
+      returns: boolean,
+      startsOnRope = false
+    ): Flight | undefined {
       const distance = Math.hypot(to.x - from.x, to.y - from.y);
       const duration = clamp(330 + distance * 2, 380, 1150) * navigationJumpDuration;
       const route = { from, to, start, duration: duration / JUMP_SPEED_MULTIPLIER, lift: 0 };
       // Monter au-dessus de l’appui avant la descente. Réduire l’arc près du haut de la fenêtre.
-      const lift = clamp(distance * .27 + 20, 24, 130);
-      const halfWidth = returns ? .19 : .175;
+      const lift = clamp(distance * 0.27 + 20, 24, 130);
+      const halfWidth = returns ? 0.19 : 0.175;
       // Au départ de Skills, accepter uniquement le recadrage déjà présent sur la liane.
       const launchEdge = startsOnRope ? Math.min(0, from.x - position.offsetWidth * halfWidth) : 0;
       for (const preferMargin of [true, false]) {
-        for (const ratio of [1, .65, .35, 0]) {
+        for (const ratio of [1, 0.65, 0.35, 0]) {
           route.lift = lift * ratio;
           let clear = true;
           for (let step = 0; step <= 24; step++) {
             const t = step / 24;
             if ((returns && step === 24) || (!returns && step === 0)) continue;
             const point = arc(route, t);
-            const edgeAllowance = Math.max(0, mix(clearance(from, halfWidth), clearance(to, halfWidth), t));
+            const edgeAllowance = Math.max(
+              0,
+              mix(clearance(from, halfWidth), clearance(to, halfWidth), t)
+            );
             const required = preferMargin ? Math.min(margin, edgeAllowance) : 0;
-            if (clearance(point, halfWidth, launchEdge * (1 - t * t * (3 - 2 * t))) < required - .5) { clear = false; break; }
+            if (
+              clearance(point, halfWidth, launchEdge * (1 - t * t * (3 - 2 * t))) <
+              required - 0.5
+            ) {
+              clear = false;
+              break;
+            }
           }
           if (clear) return { ...route };
         }
@@ -356,7 +433,10 @@
         if (mode === 'skills-idle' && skillsState === 'idle') idleAt(landing);
         return true;
       }
-      if ((!wantsGround && !headingToGround) || (wantsGround && mode !== 'rope' && mode !== 'skills-return')) {
+      if (
+        (!wantsGround && !headingToGround) ||
+        (wantsGround && mode !== 'rope' && mode !== 'skills-return')
+      ) {
         return mode === 'skills-return';
       }
 
@@ -384,11 +464,23 @@
     }
 
     function onClick(event: MouseEvent) {
-      if (introActive || event.button !== 0 || event.detail === 0 || mode !== 'rest' || attackFrame
-        || (event.target instanceof Element && event.target.closest('a, button, input, select, .beta-dialog[open]'))) return;
+      if (
+        introActive ||
+        event.button !== 0 ||
+        event.detail === 0 ||
+        mode !== 'rest' ||
+        attackFrame ||
+        (event.target instanceof Element &&
+          event.target.closest('a, button, input, select, .beta-dialog[open]'))
+      )
+        return;
       const attack = nextAttack;
       nextAttack = attack === 'kick' ? 'clac' : 'kick';
-      try { sessionStorage.setItem(attackSessionKey, nextAttack); } catch { /* Stockage facultatif. */ }
+      try {
+        sessionStorage.setItem(attackSessionKey, nextAttack);
+      } catch {
+        /* Stockage facultatif. */
+      }
       const started = performance.now();
       const duration = mokoAnimations[attack].animationPlayer.durationMs;
       function play(now: number) {
@@ -404,7 +496,10 @@
     }
 
     function beginRest() {
-      if (mode !== 'rope' || introActive) { restDue = true; return; }
+      if (mode !== 'rope' || introActive) {
+        restDue = true;
+        return;
+      }
       restDue = false;
       const from = rope();
       let nearest: { perch: Perch; point: Point; score: number } | undefined;
@@ -449,8 +544,11 @@
       if (!flight) {
         // Même en cas de changement brusque de cadrage, reprendre depuis la pose visible.
         flight = {
-          from: current, to: target, start: now,
-          duration: 360 * navigationJumpDuration / JUMP_SPEED_MULTIPLIER, lift: 0
+          from: current,
+          to: target,
+          start: now,
+          duration: (360 * navigationJumpDuration) / JUMP_SPEED_MULTIPLIER,
+          lift: 0
         };
       }
       mode = 'return';
@@ -471,7 +569,7 @@
         const branch = project(tree.restPoints[0].feetPx);
         if (branch && elapsed < landing) {
           const size = position.offsetWidth;
-          const outside = { x: -size * 1.25 - 10, y: -size * .5 - 30 };
+          const outside = { x: -size * 1.25 - 10, y: -size * 0.5 - 30 };
           const departure = landing - introArrivalDuration / JUMP_SPEED_MULTIPLIER;
           const t = introProgress(elapsed, departure, landing);
           const arriving = {
@@ -479,9 +577,15 @@
             y: mix(outside.y, branch.y, t ** 2.1)
           };
           // Conserver le même instant relatif de changement de pose dans le bond.
-          const pose = t * introArrivalDuration / introArrivalPoseDuration;
-          paint(arriving, 'jump_down', pose * mokoAnimations.jump_down.animationPlayer.durationMs,
-            false, false, introCamera(elapsed).scale);
+          const pose = (t * introArrivalDuration) / introArrivalPoseDuration;
+          paint(
+            arriving,
+            'jump_down',
+            pose * mokoAnimations.jump_down.animationPlayer.durationMs,
+            false,
+            false,
+            introCamera(elapsed).scale
+          );
         } else if (branch && elapsed < rejoin) {
           paint(branch, 'idle', undefined, false, false, introCamera(elapsed).scale);
         } else if (branch) {
@@ -494,12 +598,19 @@
           }
           const target = rope();
           introFlight ??= plan(branch, target, rejoin, true) ?? {
-            from: branch, to: target, lift: 24, start: rejoin, duration: catchTime - rejoin
+            from: branch,
+            to: target,
+            lift: 24,
+            start: rejoin,
+            duration: catchTime - rejoin
           };
           const point = arc(introFlight, t, target);
           // Aligner la main de la dernière image de saut avec celle de la pose de grimpe.
-          const hand = { x: idle.x + idle.scale * 216 / 320, y: idle.y + idle.scale * 214 / 320 };
-          const gripBlend = introProgress(t, .72, 1) * position.offsetWidth;
+          const hand = {
+            x: idle.x + (idle.scale * 216) / 320,
+            y: idle.y + (idle.scale * 214) / 320
+          };
+          const gripBlend = introProgress(t, 0.72, 1) * position.offsetWidth;
           point.x += gripBlend * (hand.x - foot.x + gripFoot.x - handX);
           point.y += gripBlend * (handY - gripFoot.y - hand.y + foot.y);
           paint(point, 'jump_up', t * mokoAnimations.jump_up.animationPlayer.durationMs, true);
@@ -513,7 +624,7 @@
         syncSkills(now);
         if (!flight) return;
         const landing = mode === 'skills-out';
-        const target = landing ? project(skillsGround) ?? flight.to : rope();
+        const target = landing ? (project(skillsGround) ?? flight.to) : rope();
         const t = motion.matches ? 1 : clamp((now - flight.start) / flight.duration, 0, 1);
         if (t === 1) {
           flight = undefined;
@@ -522,7 +633,12 @@
           else catchRopeAfterSkills();
         } else {
           const jump = landing ? 'jump_down' : 'jump_up';
-          paint(arc(flight, t, target), jump, t * mokoAnimations[jump].animationPlayer.durationMs, !landing);
+          paint(
+            arc(flight, t, target),
+            jump,
+            t * mokoAnimations[jump].animationPlayer.durationMs,
+            !landing
+          );
           schedule();
         }
       } else if (mode === 'walk' && walking) {
@@ -545,7 +661,11 @@
             idleAt(flight.to);
             flight = undefined;
           } else {
-            paint(arc(flight, t), 'jump_down', t * mokoAnimations.jump_down.animationPlayer.durationMs);
+            paint(
+              arc(flight, t),
+              'jump_down',
+              t * mokoAnimations.jump_down.animationPlayer.durationMs
+            );
             schedule();
           }
         } else if (t === 1) {
@@ -565,7 +685,7 @@
               y: mix(footerCatch.target.y, target.y, follow)
             };
             footerCatch.updated = now;
-            const catchUp = introProgress(t, .7, 1);
+            const catchUp = introProgress(t, 0.7, 1);
             destination = {
               x: mix(footerCatch.target.x, target.x, catchUp),
               y: mix(footerCatch.target.y, target.y, catchUp)
@@ -584,7 +704,8 @@
 
     const stopScroll = observeScroll((next) => {
       progress = next.progress;
-      if (next.direction !== 'none') movementClip = next.direction === 'up' ? 'climb_liana_cycle' : 'climb_liana';
+      if (next.direction !== 'none')
+        movementClip = next.direction === 'up' ? 'climb_liana_cycle' : 'climb_liana';
       if (introActive || mode === 'intro') return;
       if (syncSkills(performance.now()) || next.direction === 'none') return;
       if (motion.matches) {
@@ -667,18 +788,32 @@
   });
 </script>
 
-<div class="rail" class:unrolling={introActive}
+<div
+  class="rail"
+  class:unrolling={introActive}
   style:--reveal-height={reveal < 1 ? `${reveal * 100}dvh` : undefined}
-  bind:this={rail} aria-hidden="true">
+  bind:this={rail}
+  aria-hidden="true"
+>
   {#if tileHeight && railWidth}
     <svg class="liana" style:--overscan={vineOverscan + 'px'}>
       <defs>
-        <pattern id={patternId} width={railWidth} height={tileHeight * 2} patternUnits="userSpaceOnUse">
+        <pattern
+          id={patternId}
+          width={railWidth}
+          height={tileHeight * 2}
+          patternUnits="userSpaceOnUse"
+        >
           <!-- Deux coupes du même corps de liane se rejoignent à la même ligne de pixels. -->
           {#each [false, true] as mirrored}
             <g transform={mirrored ? 'translate(0 ' + tileHeight * 2 + ') scale(1 -1)' : undefined}>
-              <svg x={sheetLeft} width={sheetWidth} height={tileHeight}
-                viewBox={'0 ' + vineTop + ' 1024 ' + (vineBottom - vineTop)} overflow="hidden">
+              <svg
+                x={sheetLeft}
+                width={sheetWidth}
+                height={tileHeight}
+                viewBox={'0 ' + vineTop + ' 1024 ' + (vineBottom - vineTop)}
+                overflow="hidden"
+              >
                 <image href={asset('images/environment/liana.png')} width="1024" height="1024" />
               </svg>
             </g>
@@ -690,7 +825,13 @@
   {/if}
 </div>
 <div class="grip-track" bind:this={gripTrack} aria-hidden="true"></div>
-<div class="sprite-track" class:ready style:--moko-desktop-scale={desktopScale} class:skills-foreground={skillsState !== 'unavailable' && skillsState !== 'idle'} aria-hidden="true">
+<div
+  class="sprite-track"
+  class:ready
+  style:--moko-desktop-scale={desktopScale}
+  class:skills-foreground={skillsState !== 'unavailable' && skillsState !== 'idle'}
+  aria-hidden="true"
+>
   <div class="position" bind:this={position}>
     <div class:face-left={faceLeft}>
       <Moko {clip} {frameTime} />
@@ -698,23 +839,31 @@
   </div>
 </div>
 
-
 {#if coconuts.length}
   <div class="coco-track" aria-hidden="true">
     {#each coconuts as coco (coco.id)}
-      <img class="coco-shot" src={cocoSprite} alt="" width="80" height="80"
-        style:left={coco.x + 'px'} style:top={coco.y + 'px'} style:width={coco.size + 'px'}
-        use:flyCoco={coco} />
+      <img
+        class="coco-shot"
+        src={cocoSprite}
+        alt=""
+        width="80"
+        height="80"
+        style:left={coco.x + 'px'}
+        style:top={coco.y + 'px'}
+        style:width={coco.size + 'px'}
+        use:flyCoco={coco}
+      />
     {/each}
   </div>
 {/if}
 
 <style>
-  .sprite-track, .coco-track {
+  .sprite-track,
+  .coco-track {
     /* Keep viewport coordinates, but show only the part inside the immersive world. */
     clip-path: inset(
       clamp(0px, var(--world-top, 0px), 100%) 0
-      clamp(0px, calc(100% - var(--world-bottom, 0px)), 100%) 0
+        clamp(0px, calc(100% - var(--world-bottom, 0px)), 100%) 0
     );
   }
 
@@ -743,11 +892,14 @@
 
   .grip-track {
     position: fixed;
-    inset: max(4.5rem, calc(100% - 45rem), env(safe-area-inset-top)) auto max(1rem, env(safe-area-inset-bottom)) 0;
+    inset: max(4.5rem, calc(100% - 45rem), env(safe-area-inset-top)) auto
+      max(1rem, env(safe-area-inset-bottom)) 0;
     pointer-events: none;
   }
 
-  .rail.unrolling { clip-path: inset(0 0 max(0px, calc(100% - var(--reveal-height, 100%)))); }
+  .rail.unrolling {
+    clip-path: inset(0 0 max(0px, calc(100% - var(--reveal-height, 100%))));
+  }
 
   .liana {
     position: absolute;
@@ -768,21 +920,36 @@
     visibility: hidden;
   }
 
-  .sprite-track.skills-foreground { z-index: 5; }
-  .sprite-track.ready { visibility: visible; }
+  .sprite-track.skills-foreground {
+    z-index: 5;
+  }
+  .sprite-track.ready {
+    visibility: visible;
+  }
 
   .position {
     position: absolute;
     top: 0;
     left: 0;
     width: calc(var(--moko-size) * var(--moko-responsive-scale));
-    max-width: calc(var(--moko-responsive-scale) * max(0px, 100dvh - max(4.5rem, calc(100dvh - 45rem), env(safe-area-inset-top)) - max(1rem, env(safe-area-inset-bottom)) - 12px));
+    max-width: calc(
+      var(--moko-responsive-scale) *
+        max(
+          0px,
+          100dvh - max(4.5rem, calc(100dvh - 45rem), env(safe-area-inset-top)) -
+            max(1rem, env(safe-area-inset-bottom)) - 12px
+        )
+    );
     aspect-ratio: 1;
     transform: translate(-120%, -120%);
   }
 
-  .position > div { transform-origin: inherit; }
-  .face-left { transform: scaleX(-1); }
+  .position > div {
+    transform-origin: inherit;
+  }
+  .face-left {
+    transform: scaleX(-1);
+  }
 
   @media (min-width: 768px) and (pointer: fine) {
     .sprite-track {
@@ -799,6 +966,8 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .rail.unrolling { clip-path: none; }
+    .rail.unrolling {
+      clip-path: none;
+    }
   }
 </style>

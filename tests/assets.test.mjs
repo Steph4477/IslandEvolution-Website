@@ -4,16 +4,34 @@ import test from 'node:test';
 
 const images = new URL('../static/images/', import.meta.url);
 const expected = {
-  'beyond-demo': ['01-mangrove-exploration.webp', '02-temple-bone-tunnel.webp',
-    '03-temple-interior-platforming.webp', '04-arena-entrance.webp'],
+  'beyond-demo': [
+    '01-mangrove-exploration.webp',
+    '02-temple-bone-tunnel.webp',
+    '03-temple-interior-platforming.webp',
+    '04-arena-entrance.webp'
+  ],
   environment: ['ground.webp', 'jungle.webp', 'liana.png', 'tree.webp'],
   gameplay: ['jungle-exploration.webp', 'temple-sunset.webp'],
-  moko: ['clac.png', 'climb-liana-cycle.png', 'climb-liana.png', 'idle.png',
-    'jump-down.png', 'jump-shoot.png', 'jump-up.png', 'kick.png', 'loot-skill.png', 'shoot.png', 'walk.png']
+  moko: [
+    'clac.png',
+    'climb-liana-cycle.png',
+    'climb-liana.png',
+    'idle.png',
+    'jump-down.png',
+    'jump-shoot.png',
+    'jump-up.png',
+    'kick.png',
+    'loot-skill.png',
+    'shoot.png',
+    'walk.png'
+  ]
 };
 
 test('public image paths have the expected spelling and case', () => {
-  assert.deepEqual(readdirSync(images).sort(), [...Object.keys(expected), 'moko-title.png', 'moko-title.webp'].sort());
+  assert.deepEqual(
+    readdirSync(images).sort(),
+    [...Object.keys(expected), 'moko-title.png', 'moko-title.webp'].sort()
+  );
   for (const [folder, files] of Object.entries(expected)) {
     assert.deepEqual(readdirSync(new URL(folder + '/', images)).sort(), files);
   }
@@ -30,9 +48,11 @@ test('Moko sprite sheets keep their original 320 px frame grid', () => {
 });
 
 test('the five perches stay in the shared illustration coordinate system', () => {
-  const scene = JSON.parse(readFileSync(new URL('../src/lib/scene/tree-perches.json', import.meta.url), 'utf8'));
+  const scene = JSON.parse(
+    readFileSync(new URL('../src/lib/scene/tree-perches.json', import.meta.url), 'utf8')
+  );
   const { width, height } = scene.image;
-  assert.equal(new Set(scene.restPoints.map(point => point.id)).size, 5);
+  assert.equal(new Set(scene.restPoints.map((point) => point.id)).size, 5);
   for (const { id, feetPx, feetNorm, walkToPx } of scene.restPoints) {
     for (const { x, y } of [feetPx, walkToPx]) {
       assert.ok(x >= 0 && x < width && y >= 0 && y < height, id);

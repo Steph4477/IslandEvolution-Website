@@ -5,17 +5,22 @@ export interface YouTubePlayer {
   destroy(): void;
 }
 
-interface PlayerEvent { target: YouTubePlayer }
+interface PlayerEvent {
+  target: YouTubePlayer;
+}
 
 interface YouTubeApi {
-  Player: new (frame: HTMLIFrameElement, options: {
-    events: {
-      onReady: (event: PlayerEvent) => void;
-      onStateChange: (event: PlayerEvent & { data: number }) => void;
-      onAutoplayBlocked: () => void;
-      onError: () => void;
-    };
-  }) => YouTubePlayer;
+  Player: new (
+    frame: HTMLIFrameElement,
+    options: {
+      events: {
+        onReady: (event: PlayerEvent) => void;
+        onStateChange: (event: PlayerEvent & { data: number }) => void;
+        onAutoplayBlocked: () => void;
+        onError: () => void;
+      };
+    }
+  ) => YouTubePlayer;
 }
 
 declare global {

@@ -7,7 +7,12 @@
   import { skillsGroundOffset } from '../scene/skills-transfer';
   import { introCamera } from '../scene/intro-timeline';
 
-  let { active, elapsed, language, plane = $bindable() }: {
+  let {
+    active,
+    elapsed,
+    language,
+    plane = $bindable()
+  }: {
     active: boolean;
     elapsed: number;
     language: Language;
@@ -19,9 +24,11 @@
 
   let zoom = $state(100);
   let offsetX = $state(0);
-  const framing = $derived(diagnostic && (zoom !== 100 || offsetX !== 0)
-    ? `translateX(${offsetX}px) scale(${zoom / 100})`
-    : undefined);
+  const framing = $derived(
+    diagnostic && (zoom !== 100 || offsetX !== 0)
+      ? `translateX(${offsetX}px) scale(${zoom / 100})`
+      : undefined
+  );
   const { width, height } = manifest.image;
   const layers = ['jungle', 'ground', 'tree'] as const;
   const focus = manifest.restPoints[0].feetNorm;
@@ -37,9 +44,13 @@
     function frameGround() {
       if (!plane) return;
       const viewport = document.documentElement;
-      const remaining = (plane.parentElement?.getBoundingClientRect().bottom ?? innerHeight) - innerHeight;
-      const offset = skillsGroundOffset(motion.matches && remaining < 380 ? 0 : remaining,
-        viewport.clientWidth, plane.offsetWidth / width);
+      const remaining =
+        (plane.parentElement?.getBoundingClientRect().bottom ?? innerHeight) - innerHeight;
+      const offset = skillsGroundOffset(
+        motion.matches && remaining < 380 ? 0 : remaining,
+        viewport.clientWidth,
+        plane.offsetWidth / width
+      );
       plane.style.setProperty('--skills-crop', offset + 'px');
     }
     const stop = observeScroll(frameGround);
@@ -61,12 +72,24 @@
       </defs>
     </svg>
   {/if}
-  <div class="plane" bind:this={plane} style:--diagnostic-framing={framing}
+  <div
+    class="plane"
+    bind:this={plane}
+    style:--diagnostic-framing={framing}
     style:--decor-ratio={`${width} / ${height}`}
-    style:--intro-camera={active ? cameraTransform : undefined}>
+    style:--intro-camera={active ? cameraTransform : undefined}
+  >
     {#each layers as layer (layer)}
-      <img src={asset(`images/environment/${layer}.webp`)} alt="" {width} {height} data-layer={layer}
-        style:--jungle-filter={layer === 'jungle' && active && camera.blur > 0 ? `url(#${blurId})` : undefined} />
+      <img
+        src={asset(`images/environment/${layer}.webp`)}
+        alt=""
+        {width}
+        {height}
+        data-layer={layer}
+        style:--jungle-filter={layer === 'jungle' && active && camera.blur > 0
+          ? `url(#${blurId})`
+          : undefined}
+      />
     {/each}
     {#each manifest.restPoints as point, index (point.id)}
       {#if diagnostic}
@@ -74,9 +97,9 @@
           class="point"
           data-point={point.id}
           title={perchLabel(language, point)}
-          style:left={`${point.feetPx.x / width * 100}%`}
-          style:top={`${point.feetPx.y / height * 100}%`}
-        >{index + 1}</span>
+          style:left={`${(point.feetPx.x / width) * 100}%`}
+          style:top={`${(point.feetPx.y / height) * 100}%`}>{index + 1}</span
+        >
       {/if}
     {/each}
   </div>
@@ -91,12 +114,20 @@
       <input id="tree-zoom" type="range" min="50" max="125" bind:value={zoom} />
       <label for="tree-offset">{labels.offset} · {offsetX} px</label>
       <input id="tree-offset" type="range" min="-750" max="150" bind:value={offsetX} />
-      <button type="button" onclick={() => { zoom = 100; offsetX = 0; }}>{labels.reset}</button>
+      <button
+        type="button"
+        onclick={() => {
+          zoom = 100;
+          offsetX = 0;
+        }}>{labels.reset}</button
+      >
     </fieldset>
     <ol class="coordinates" aria-label={labels.coordinates}>
       {#each manifest.restPoints as point (point.id)}
-        <li>{perchLabel(language, point)}<br />
-          {labels.previous} ({point.previousFeetPx.x}, {point.previousFeetPx.y}) → {labels.current} ({point.feetPx.x}, {point.feetPx.y})
+        <li>
+          {perchLabel(language, point)}<br />
+          {labels.previous} ({point.previousFeetPx.x}, {point.previousFeetPx.y}) → {labels.current} ({point
+            .feetPx.x}, {point.feetPx.y})
         </li>
       {/each}
     </ol>
@@ -115,7 +146,6 @@
     z-index: 0;
   }
 
-
   /* Le décor et les repères partagent le même plan. */
   .plane {
     position: absolute;
@@ -128,20 +158,39 @@
     transform-origin: 0 0;
   }
 
-  .scene { container-type: size; }
-  .plane img { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .scene {
+    container-type: size;
+  }
+  .plane img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
   /* Le nouveau fond est légèrement plus haut à largeur égale. */
-  .plane img[data-layer='jungle'] { object-fit: cover; filter: var(--jungle-filter, none); }
-  .filter-definitions { position: absolute; }
+  .plane img[data-layer='jungle'] {
+    object-fit: cover;
+    filter: var(--jungle-filter, none);
+  }
+  .filter-definitions {
+    position: absolute;
+  }
 
   @supports (scale: calc(1px / 1px)) {
     .plane {
-      --camera-min-scale: min(1, max(calc(100cqw / var(--plane-width)),
-        calc(100dvh / max(100cqh, calc(100cqw * 2048 / 1885)))));
+      --camera-min-scale: min(
+        1,
+        max(
+          calc(100cqw / var(--plane-width)),
+          calc(100dvh / max(100cqh, calc(100cqw * 2048 / 1885)))
+        )
+      );
     }
   }
 
-  .active .plane { transform: var(--intro-camera, none); }
+  .active .plane {
+    transform: var(--intro-camera, none);
+  }
   .scene:not(.active) .plane {
     translate: var(--skills-crop, 0px) 0;
     transform: var(--diagnostic-framing, none);
@@ -158,36 +207,49 @@
     border-radius: 50%;
     background: #153b32;
     color: #fff9d9;
-    font: 700 .65rem system-ui, sans-serif;
+    font:
+      700 0.65rem system-ui,
+      sans-serif;
   }
 
   .diagnostic {
     position: fixed;
     z-index: 6;
-    right: .75rem;
-    bottom: .75rem;
+    right: 0.75rem;
+    bottom: 0.75rem;
     display: grid;
-    gap: .35rem;
+    gap: 0.35rem;
     width: min(15rem, calc(100vw - 1.5rem));
-    padding: .55rem .75rem;
+    padding: 0.55rem 0.75rem;
     border: 1px solid #c9d89f;
     background: #142019;
     color: #f8f1da;
-    font-size: .8rem;
+    font-size: 0.8rem;
   }
 
   .diagnostic fieldset {
     display: grid;
-    gap: .25rem;
+    gap: 0.25rem;
     min-width: 0;
     margin: 0;
   }
-  .diagnostic summary { cursor: pointer; }
-  .diagnostic input { width: 100%; margin: 0; }
-  .coordinates { padding-left: 1.2rem; }
+  .diagnostic summary {
+    cursor: pointer;
+  }
+  .diagnostic input {
+    width: 100%;
+    margin: 0;
+  }
+  .coordinates {
+    padding-left: 1.2rem;
+  }
 
   @media (prefers-reduced-motion: reduce) {
-    .active .plane { transform: none; }
-    .active .plane img[data-layer='jungle'] { filter: none; }
+    .active .plane {
+      transform: none;
+    }
+    .active .plane img[data-layer='jungle'] {
+      filter: none;
+    }
   }
 </style>

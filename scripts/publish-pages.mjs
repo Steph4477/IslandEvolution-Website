@@ -24,7 +24,11 @@ function prepareBuild() {
 
   const env = { ...process.env, VITE_SITE_URL: siteUrl };
   for (const task of ['check', 'test', 'build']) {
-    execFileSync(process.execPath, [npmCli, 'run', task], { cwd: repository, env, stdio: 'inherit' });
+    execFileSync(process.execPath, [npmCli, 'run', task], {
+      cwd: repository,
+      env,
+      stdio: 'inherit'
+    });
   }
 
   for (const file of ['index.html', 'sitemap.xml', '.nojekyll']) {
@@ -44,9 +48,26 @@ function publishBuild() {
   const checkout = mkdtempSync(join(tempRoot, 'island-evolution-pages-'));
 
   try {
-    git(['clone', '--no-checkout', '--single-branch', '--branch', pagesBranch, '--depth', '1', '--no-tags', '--', origin, checkout]);
+    git([
+      'clone',
+      '--no-checkout',
+      '--single-branch',
+      '--branch',
+      pagesBranch,
+      '--depth',
+      '1',
+      '--no-tags',
+      '--',
+      origin,
+      checkout
+    ]);
     // The clone supplies the parent commit and an empty index. Stage the build as the entire new tree.
-    const buildTree = ['-C', buildDirectory, `--git-dir=${join(checkout, '.git')}`, `--work-tree=${buildDirectory}`];
+    const buildTree = [
+      '-C',
+      buildDirectory,
+      `--git-dir=${join(checkout, '.git')}`,
+      `--work-tree=${buildDirectory}`
+    ];
     git([...buildTree, '-c', 'core.autocrlf=false', 'add', '--all', '--force', '--', '.']);
 
     if (!git([...buildTree, 'diff', '--cached', '--name-only'], { capture: true })) {
@@ -56,7 +77,16 @@ function publishBuild() {
 
     const name = git(['config', '--get', 'user.name'], { capture: true });
     const email = git(['config', '--get', 'user.email'], { capture: true });
-    git([...buildTree, '-c', `user.name=${name}`, '-c', `user.email=${email}`, 'commit', '-m', `deploy: publish Pages from ${source}`]);
+    git([
+      ...buildTree,
+      '-c',
+      `user.name=${name}`,
+      '-c',
+      `user.email=${email}`,
+      'commit',
+      '-m',
+      `deploy: publish Pages from ${source}`
+    ]);
     git(['-C', checkout, 'push', '--no-follow-tags', 'origin', `HEAD:refs/heads/${pagesBranch}`]);
     console.log('Build poussé sur origin/gh-pages. Vérifiez le déploiement dans GitHub Pages.');
   } finally {

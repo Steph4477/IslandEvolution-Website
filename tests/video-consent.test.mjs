@@ -13,9 +13,14 @@ test('a valid, unexpired preference preserves either explicit video choice', () 
 
 test('unknown, malformed and expired choices never grant consent', () => {
   for (const value of [
-    null, '', 'allowed', 'null', '{}',
+    null,
+    '',
+    'allowed',
+    'null',
+    '{}',
     JSON.stringify({ choice: 'yes', expiresAt: now + 1000 }),
     JSON.stringify({ choice: 'allowed', expiresAt: now }),
     JSON.stringify({ choice: 'allowed', expiresAt: now + videoConsentMaxAge + 1 })
-  ]) assert.equal(readVideoConsent(value, now), null);
+  ])
+    assert.equal(readVideoConsent(value, now), null);
 });

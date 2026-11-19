@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { acceptsSkill, cocoShotTiming, jumpDuration, skillsJumpLift, skillsJumpPeak } from '../src/lib/scene/skills-actions.ts';
+import {
+  acceptsSkill,
+  cocoShotTiming,
+  jumpDuration,
+  skillsJumpLift,
+  skillsJumpPeak
+} from '../src/lib/scene/skills-actions.ts';
 
 test('only Coco Shot can be added to a jump in progress', () => {
   assert(acceptsSkill('idle', 'jump'));
@@ -16,8 +22,8 @@ test('only Coco Shot can be added to a jump in progress', () => {
 test('one impulse returns to the original ground point', () => {
   assert.equal(skillsJumpLift(0), 0);
   assert.equal(skillsJumpLift(1), 0);
-  assert(skillsJumpLift(.5) > skillsJumpLift(.25));
-  assert.equal(skillsJumpLift(.25), skillsJumpLift(.75));
+  assert(skillsJumpLift(0.5) > skillsJumpLift(0.25));
+  assert.equal(skillsJumpLift(0.25), skillsJumpLift(0.75));
 });
 test('the Coco follows the release pose at ground level and in the air', () => {
   assert.deepEqual(cocoShotTiming(1000), { animationStart: 1000, releaseAt: 1500 });
@@ -32,7 +38,7 @@ test('the Coco follows the release pose at ground level and in the air', () => {
 
 test('Skills gains 50% height in the viewport and still respects the upper edge', () => {
   for (const size of [172, 304, 228]) {
-    assert.equal(skillsJumpPeak(size, 240), Math.min(132, size * .54) * .62 * 1.5);
+    assert.equal(skillsJumpPeak(size, 240), Math.min(132, size * 0.54) * 0.62 * 1.5);
   }
   assert.equal(skillsJumpPeak(228, 45), 45);
   assert.equal(skillsJumpPeak(228, -10), 0);

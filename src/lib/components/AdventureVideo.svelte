@@ -1,8 +1,21 @@
 <script lang="ts">
   import { tick } from 'svelte';
-  import { claimPlayback, createYouTubeFrame, loadYouTube, onPlaybackAvailable, releasePlayback, type YouTubePlayer } from '../video/youtube';
+  import {
+    claimPlayback,
+    createYouTubeFrame,
+    loadYouTube,
+    onPlaybackAvailable,
+    releasePlayback,
+    type YouTubePlayer
+  } from '../video/youtube';
 
-  let { id, poster, title, labels, allowed }: {
+  let {
+    id,
+    poster,
+    title,
+    labels,
+    allowed
+  }: {
     id: string;
     poster: string;
     title: string;
@@ -10,7 +23,7 @@
     allowed: boolean;
   } = $props();
 
-  const threshold = .6;
+  const threshold = 0.6;
   let screen: HTMLDivElement;
   let host: HTMLDivElement;
   let trigger = $state<HTMLButtonElement>();
@@ -140,12 +153,16 @@
       reconcile();
     };
 
-    const observer = 'IntersectionObserver' in window
-      ? new IntersectionObserver(([entry]) => {
-          ratio = entry.intersectionRatio;
-          reconcile();
-        }, { threshold: [0, .01, threshold] })
-      : undefined;
+    const observer =
+      'IntersectionObserver' in window
+        ? new IntersectionObserver(
+            ([entry]) => {
+              ratio = entry.intersectionRatio;
+              reconcile();
+            },
+            { threshold: [0, 0.01, threshold] }
+          )
+        : undefined;
     observer?.observe(screen);
     const stopWaiting = onPlaybackAvailable(reconcile);
     document.addEventListener('visibilitychange', reconcile);
@@ -171,9 +188,22 @@
   <div class="screen" bind:this={screen} aria-busy={status === 'loading'}>
     <div class="player" bind:this={host}></div>
     {#if !allowed}
-      <img class="poster" src={poster} alt="" loading="lazy" decoding="async" width="1280" height="720" />
+      <img
+        class="poster"
+        src={poster}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        width="1280"
+        height="720"
+      />
     {:else if status !== 'ready'}
-      <button type="button" bind:this={trigger} onclick={() => startManually?.()} aria-label={labels.play}>
+      <button
+        type="button"
+        bind:this={trigger}
+        onclick={() => startManually?.()}
+        aria-label={labels.play}
+      >
         <img src={poster} alt="" loading="lazy" decoding="async" width="1280" height="720" />
         <span aria-hidden="true">▶</span>
       </button>
@@ -183,11 +213,32 @@
 </div>
 
 <style>
-  .video { text-align: center; }
-  .screen { position: relative; width: 100%; aspect-ratio: 16 / 9; min-height: 200px; }
-  .player, .screen button { position: absolute; inset: 0; width: 100%; height: 100%; }
-  .player :global(iframe) { display: block; width: 100%; height: 100%; border: 0; }
-  .player :global(iframe:focus-visible) { outline: 2px solid #fff2d8; outline-offset: 3px; }
+  .video {
+    text-align: center;
+  }
+  .screen {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    min-height: 200px;
+  }
+  .player,
+  .screen button {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+  .player :global(iframe) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+  .player :global(iframe:focus-visible) {
+    outline: 2px solid #fff2d8;
+    outline-offset: 3px;
+  }
   .screen button {
     display: grid;
     place-items: center;
@@ -197,7 +248,13 @@
     color: #fff2d8;
     cursor: pointer;
   }
-  .screen img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+  .screen img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
   .screen span {
     position: relative;
     display: grid;
@@ -208,5 +265,7 @@
     border-radius: 50%;
     background: #142019ef;
   }
-  .video p { margin: .5rem 0 0; }
+  .video p {
+    margin: 0.5rem 0 0;
+  }
 </style>
