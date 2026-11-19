@@ -7,17 +7,44 @@ import {
 
 const application = { nickname: '', email: 'explorer+android@example.org', androidConfirmed: true, policyRead: true };
 
-test('a Google Play email is required and is not restricted to Gmail', () => {
-  assert.equal(validateBetaApplication({ ...application, email: '' }).email, 'missing');
-  for (const email of [
-    'explorer', '@example.org', 'explorer@-example.org', 'two addresses@example.org',
-    ' explorer@example.org ', 'é@example.org', 'explorer@' + 'a'.repeat(64) + '.org'
-  ]) {
-    assert.equal(validateBetaApplication({ ...application, email }).email, 'invalid');
-    assert.equal(buildBetaMailto('fr', { ...application, email }), undefined);
+test('a Google Play email is required and must have a complete domain', () => {
+  for (const email of ['', '   ', '\u00a0']) {
+    const incomplete = { ...application, email };
+    assert.equal(validateBetaApplication(incomplete).email, 'missing');
+    assert.equal(buildBetaMailto('fr', incomplete), undefined);
   }
+
+  for (const email of [
+    'explorer', 'test@gmail', '  test@gmail  ', 'test@', 'test.com', 'test@gmail.', 'test@gmail..com',
+    '@example.org', 'explorer@-example.org', 'two addresses@example.org', 'test@ gmail.com',
+    'test@gmail .com', 'é@example.org', 'explorer@' + 'a'.repeat(64) + '.org'
+  ]) {
+    const invalid = { ...application, email };
+    assert.equal(validateBetaApplication(invalid).email, 'invalid', email);
+    for (const language of ['fr', 'en']) {
+      assert.equal(buildBetaMailto(language, invalid), undefined, email);
+      assert.equal(betaApplicationDestination(language, invalid), undefined, email);
+    }
+  }
+});
+
+test('Google Play emails can use Gmail, another provider or a custom domain', () => {
   assert.deepEqual(validateBetaApplication(application), { email: undefined, nickname: undefined, androidConfirmed: false, policyRead: false });
-  assert.equal(validateBetaApplication({ ...application, email: 'explorer@xn--caf-dma.example' }).email, undefined);
+  for (const email of [
+    'test@gmail.com', 'test@outlook.fr', 'test@yahoo.com', 'test@play.example.co.uk', 'explorer@xn--caf-dma.example'
+  ]) {
+    const valid = { ...application, email };
+    assert.equal(validateBetaApplication(valid).email, undefined, email);
+    assert.ok(buildBetaMailto('en', valid), email);
+  }
+});
+
+test('surrounding spaces are removed before validation and from both mail drafts', () => {
+  const padded = { ...application, email: ` \u00a0${application.email}\u202f ` };
+  assert.equal(validateBetaApplication(padded).email, undefined);
+  for (const language of ['fr', 'en']) {
+    assert.equal(buildBetaMailto(language, padded), buildBetaMailto(language, application));
+  }
 });
 
 test('privacy acknowledgement is required and a nickname is optional', () => {
@@ -60,6 +87,7 @@ test('address and nickname limits are enforced directly by the generator', () =>
   const email = local + domain.slice(0, betaEmailMaxLength - local.length);
   const nickname = '🥥'.repeat(betaNicknameMaxLength / 2);
   assert.ok(buildBetaMailto('fr', { ...application, email, nickname }));
+  assert.equal(validateBetaApplication({ ...application, email: ` ${email} ` }).email, undefined);
   const oversizedEmail = { ...application, email: 'a' + email };
   const oversizedNickname = { ...application, nickname: nickname + 'x' };
   assert.equal(validateBetaApplication(oversizedEmail).email, 'tooLong');

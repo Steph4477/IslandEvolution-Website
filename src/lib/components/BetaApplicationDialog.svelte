@@ -1,7 +1,7 @@
 <script lang="ts">
   import {
     androidConfirmation, betaApplicationDestination, betaApplicationsOpen, betaEmailMaxLength, betaNicknameMaxLength,
-    hasInvalidBetaCharacters, validateBetaApplication
+    hasInvalidBetaCharacters, trimBetaEmail, validateBetaApplication
   } from '../beta-application';
   import type { Language, translations } from '../i18n';
 
@@ -35,7 +35,7 @@
   const nicknameIssue = $derived(pasteErrors.nickname ?? ((nicknameTouched || attempted) ? errors.nickname : undefined));
   const emailError = $derived(emailIssue === 'tooLong'
     ? language === 'fr' ? `L’adresse est limitée à ${betaEmailMaxLength} caractères.` : `The email address is limited to ${betaEmailMaxLength} characters.`
-    : emailIssue ? copy.errors[emailIssue] : undefined);
+    : emailIssue === 'missing' ? copy.errors.missing : undefined);
   const nicknameError = $derived(nicknameIssue === 'tooLong'
     ? language === 'fr' ? 'Le pseudo est trop long.' : 'The nickname is too long.'
     : nicknameIssue
@@ -67,9 +67,10 @@
   }
 
   function checkPaste(event: ClipboardEvent, field: 'email' | 'nickname', limit: number) {
-    const text = event.clipboardData?.getData('text/plain');
-    if (text === undefined) return;
+    const pastedText = event.clipboardData?.getData('text/plain');
+    if (pastedText === undefined) return;
     const input = field === 'email' ? emailInput : nicknameInput;
+    const text = field === 'email' && !input.value ? trimBetaEmail(pastedText) : pastedText;
     // Email inputs do not expose a selection range. Reserve space for their existing value.
     const selectedLength = (input.selectionEnd ?? 0) - (input.selectionStart ?? 0);
     const resultLength = input.value.length - selectedLength + text.length;
@@ -78,12 +79,23 @@
     if (issue) {
       event.preventDefault();
       pasteErrors[field] = issue;
+    } else if (text !== pastedText) {
+      // Insert the trimmed address before the browser applies maxlength to the pasted text.
+      event.preventDefault();
+      email = text;
+      pasteErrors.email = undefined;
     }
+  }
+
+  function trimEmailInput() {
+    email = trimBetaEmail(emailInput.value);
+    if (emailInput.value !== email) emailInput.value = email;
   }
 
   function submit(event: SubmitEvent) {
     event.preventDefault();
     if (!betaApplicationsOpen) return;
+    trimEmailInput();
     attempted = true;
     if (errors.nickname || errors.email || errors.androidConfirmed || errors.policyRead || pasteErrors.nickname || pasteErrors.email) {
       if (errors.nickname || pasteErrors.nickname) nicknameInput.focus();
@@ -131,13 +143,22 @@
       <label for="beta-email">{copy.email}</label>
       <input id="beta-email" type="email" bind:this={emailInput} bind:value={email} maxlength={betaEmailMaxLength} required
         autocomplete="off" autocapitalize="none" spellcheck="false"
-        aria-invalid={emailError ? 'true' : undefined}
-        aria-describedby={emailError ? 'beta-email-help beta-email-error' : 'beta-email-help'}
-        onblur={() => emailTouched = true}
+        aria-invalid={emailIssue ? 'true' : undefined}
+        aria-describedby={emailIssue ? 'beta-email-help beta-email-error' : 'beta-email-help'}
+        onblur={() => { trimEmailInput(); emailTouched = true; }}
         oninput={() => pasteErrors.email = undefined}
         onpaste={(event) => checkPaste(event, 'email', betaEmailMaxLength)} />
-      <small id="beta-email-help">{copy.emailHelp}</small>
-      {#if emailError}<small id="beta-email-error" class="error" aria-live="polite">{emailError}</small>{/if}
+      <div class="email-feedback">
+        <small id="beta-email-help">{copy.emailHelp}</small>
+        <small id="beta-email-error" class="error" aria-live="polite">
+          {#if emailIssue === 'invalid'}
+            {@const { before, example, after } = copy.errors.emailFormat}
+            {before}<a href={`mailto:${example}`}>{example}</a>{after}
+          {:else if emailError}
+            {emailError}
+          {/if}
+        </small>
+      </div>
     </div>
     <label class="acknowledgement">
       <input type="checkbox" bind:this={androidInput} bind:checked={androidConfirmed} required
@@ -199,6 +220,9 @@
   small { color: #e2e7cf; }
   #beta-privacy a { color: #f1cf8e; }
   .error { color: #ffb6a5; }
+  .email-feedback small { display: block; }
+  .email-feedback .error:not(:empty) { margin-top: .4rem; }
+  .email-feedback a { color: inherit; }
   .action { justify-items: start; }
   :global(html:has(.beta-dialog[open])) { overflow: hidden; scrollbar-gutter: stable; }
 </style>

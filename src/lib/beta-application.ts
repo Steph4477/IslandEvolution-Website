@@ -10,8 +10,13 @@ export const androidConfirmation = {
   en: 'I confirm that I have an Android device with access to Google Play.'
 };
 
-// Same ASCII syntax and domain label limits as a single HTML email input.
-const emailPattern = /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*$/i;
+// HTML email syntax with at least two domain labels.
+const emailPattern = /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/i;
+
+export function trimBetaEmail(email: string) {
+  // Trim space separators, keeping control characters and line breaks available for validation.
+  return email.replace(/^\p{Zs}+|\p{Zs}+$/gu, '');
+}
 
 export function hasInvalidBetaCharacters(value: string) {
   // With the Unicode flag, a valid surrogate pair is read as one code point.
@@ -19,10 +24,11 @@ export function hasInvalidBetaCharacters(value: string) {
 }
 
 export function validateBetaApplication({ nickname, email, androidConfirmed, policyRead }: Application) {
+  const trimmedEmail = trimBetaEmail(email);
   return {
-    email: !email ? 'missing'
-      : email.length > betaEmailMaxLength ? 'tooLong'
-      : hasInvalidBetaCharacters(email) || !emailPattern.test(email) ? 'invalid'
+    email: !trimmedEmail ? 'missing'
+      : trimmedEmail.length > betaEmailMaxLength ? 'tooLong'
+      : hasInvalidBetaCharacters(trimmedEmail) || !emailPattern.test(trimmedEmail) ? 'invalid'
       : undefined,
     nickname: nickname.length > betaNicknameMaxLength ? 'tooLong'
       : hasInvalidBetaCharacters(nickname) ? 'invalid'
@@ -35,7 +41,8 @@ export function validateBetaApplication({ nickname, email, androidConfirmed, pol
 export function buildBetaMailto(language: 'fr' | 'en', application: Application) {
   const errors = validateBetaApplication(application);
   if (errors.email || errors.nickname || errors.androidConfirmed || errors.policyRead) return undefined;
-  const { nickname, email } = application;
+  const { nickname } = application;
+  const email = trimBetaEmail(application.email);
   const subject = language === 'fr'
     ? 'Candidature bêta Android — MOKO Island Evolution'
     : 'Android Beta Application — MOKO Island Evolution';
