@@ -1,0 +1,10 @@
+# Fichiers générés par npm et par le script d’export Godot.
+package-lock.json
+src/lib/moko/moko-manifest.ts
+
+# Ressources publiques et sorties locales.
+static/
+node_modules/
+.svelte-kit/
+.vite/
+build/
