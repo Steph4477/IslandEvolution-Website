@@ -15,18 +15,30 @@ export const androidConfirmation = {
   en: 'I confirm that I have an Android device with access to Google Play.'
 };
 
-// HTML email syntax with at least two domain labels.
+// Syntaxe HTML d’une adresse e-mail, avec au moins deux parties dans le domaine.
 const emailPattern =
   /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/i;
 
 export function trimBetaEmail(email: string) {
-  // Trim space separators, keeping control characters and line breaks available for validation.
+  // Garder les caractères de contrôle et les sauts de ligne pour pouvoir les refuser.
   return email.replace(/^\p{Zs}+|\p{Zs}+$/gu, '');
 }
 
 export function hasInvalidBetaCharacters(value: string) {
-  // With the Unicode flag, a valid surrogate pair is read as one code point.
+  // Le mode Unicode lit une paire valide comme un seul caractère.
   return /[\p{Cc}\u2028\u2029\uD800-\uDFFF]/u.test(value);
+}
+
+function validateEmail(email: string): 'missing' | 'tooLong' | 'invalid' | undefined {
+  const trimmedEmail = trimBetaEmail(email);
+  if (!trimmedEmail) return 'missing';
+  if (trimmedEmail.length > betaEmailMaxLength) return 'tooLong';
+  if (hasInvalidBetaCharacters(trimmedEmail) || !emailPattern.test(trimmedEmail)) return 'invalid';
+}
+
+function validateNickname(nickname: string): 'tooLong' | 'invalid' | undefined {
+  if (nickname.length > betaNicknameMaxLength) return 'tooLong';
+  if (hasInvalidBetaCharacters(nickname)) return 'invalid';
 }
 
 export function validateBetaApplication({
@@ -35,21 +47,9 @@ export function validateBetaApplication({
   androidConfirmed,
   policyRead
 }: Application) {
-  const trimmedEmail = trimBetaEmail(email);
   return {
-    email: !trimmedEmail
-      ? 'missing'
-      : trimmedEmail.length > betaEmailMaxLength
-        ? 'tooLong'
-        : hasInvalidBetaCharacters(trimmedEmail) || !emailPattern.test(trimmedEmail)
-          ? 'invalid'
-          : undefined,
-    nickname:
-      nickname.length > betaNicknameMaxLength
-        ? 'tooLong'
-        : hasInvalidBetaCharacters(nickname)
-          ? 'invalid'
-          : undefined,
+    email: validateEmail(email),
+    nickname: validateNickname(nickname),
     androidConfirmed: androidConfirmed !== true,
     policyRead: policyRead !== true
   } as const;

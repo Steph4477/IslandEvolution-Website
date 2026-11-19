@@ -100,10 +100,10 @@
     if (pastedText === undefined) return;
     const input = field === 'email' ? emailInput : nicknameInput;
     const text = field === 'email' && !input.value ? trimBetaEmail(pastedText) : pastedText;
-    // Email inputs do not expose a selection range. Reserve space for their existing value.
+    // Le champ email ne donne pas accès à la sélection. Compter la valeur déjà saisie.
     const selectedLength = (input.selectionEnd ?? 0) - (input.selectionStart ?? 0);
     const resultLength = input.value.length - selectedLength + text.length;
-    // Reject invalid clipboard text before the single-line input can strip line breaks.
+    // Refuser un collage invalide avant que le champ ne retire les sauts de ligne.
     const issue = hasInvalidBetaCharacters(text)
       ? 'invalid'
       : resultLength > limit
@@ -113,7 +113,7 @@
       event.preventDefault();
       pasteErrors[field] = issue;
     } else if (text !== pastedText) {
-      // Insert the trimmed address before the browser applies maxlength to the pasted text.
+      // Insérer l’adresse nettoyée avant que le navigateur applique maxlength.
       event.preventDefault();
       email = text;
       pasteErrors.email = undefined;
