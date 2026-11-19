@@ -20,7 +20,8 @@
   import BetaApplicationDialog from '../lib/components/BetaApplicationDialog.svelte';
   import CanopyGallery from '../lib/components/CanopyGallery.svelte';
   import AdventureVideo from '../lib/components/AdventureVideo.svelte';
-  import { languageKey, translations, type Language } from '../lib/i18n';
+  import { translations, type Language } from '../lib/i18n';
+  import { readPageLanguage, rememberPageLanguage } from '../lib/page-language';
   import { acceptsSkill, type SkillsState } from '../lib/scene/skills-actions';
   import { introProgress, introTiming } from '../lib/scene/intro-timeline';
   import { observeScroll } from '../lib/scene/scroll-controller';
@@ -66,18 +67,13 @@
 
   onMount(() => {
     const requested = new URLSearchParams(window.location.search).get('lang');
-    if (requested === 'fr' || requested === 'en') applyLanguage(requested);
-    else
-      try {
-        applyLanguage(localStorage.getItem(languageKey) === 'en' ? 'en' : 'fr');
-      } catch {
-        applyLanguage('fr');
-      }
+    // L’accueil ignore une valeur inconnue et revient alors à la préférence enregistrée.
+    applyLanguage(readPageLanguage(requested === 'fr' || requested === 'en' ? requested : null));
 
     try {
       videoConsent = readVideoConsent(localStorage.getItem(videoConsentKey));
     } catch {
-      // The previews remain available without storage.
+      // Les aperçus locaux restent visibles quand le stockage est indisponible.
     }
     try {
       const returnKey = videoConsentKey + ':return';
@@ -86,7 +82,7 @@
         videoPreferences.focus({ preventScroll: true });
       }
     } catch {
-      // The preference controls remain usable without storage.
+      // Les commandes restent utilisables quand la restauration du focus est impossible.
     }
     function syncVideoConsent(event: StorageEvent) {
       if (event.key === videoConsentKey || event.key === null) {
@@ -122,11 +118,7 @@
 
   function selectLanguage(next: Language) {
     applyLanguage(next);
-    try {
-      localStorage.setItem(languageKey, next);
-    } catch {
-      // La langue reste active pour cette visite.
-    }
+    rememberPageLanguage(next);
   }
 
   function finishIntro() {
@@ -135,7 +127,7 @@
 
   function applyVideoConsent(next: VideoConsent | null) {
     if (videoConsent === 'allowed' && next !== 'allowed') {
-      // Destroy every player before reloading to unload the third-party API itself.
+      // Détruire les lecteurs avant de recharger la page pour décharger aussi l’API tierce.
       flushSync(() => {
         videoConsent = next;
       });
@@ -153,13 +145,13 @@
         JSON.stringify({ choice: next, expiresAt: Date.now() + videoConsentMaxAge })
       );
     } catch {
-      // The choice still takes effect for the current visit.
+      // Le choix reste applicable pour la visite en cours.
     }
     if (withdrawing && !fromPreview)
       try {
         sessionStorage.setItem(videoConsentKey + ':return', '1');
       } catch {
-        // Focus restoration on reload is optional when storage is blocked.
+        // Le focus peut ne pas être restauré au rechargement si le stockage est bloqué.
       }
     applyVideoConsent(next);
     if (fromPreview) {

@@ -1,7 +1,6 @@
 import perches from './scene/tree-perches.json';
 
 export type Language = 'fr' | 'en';
-export const languageKey = 'island-evolution:language';
 
 export const translations = {
   fr: {

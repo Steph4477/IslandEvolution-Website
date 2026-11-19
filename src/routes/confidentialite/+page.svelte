@@ -2,7 +2,8 @@
   import { resolve } from '$app/paths';
   import { onMount } from 'svelte';
   import LanguageSwitcher from '../../lib/components/LanguageSwitcher.svelte';
-  import { languageKey, translations, type Language } from '../../lib/i18n';
+  import { translations, type Language } from '../../lib/i18n';
+  import { readPageLanguage, rememberPageLanguage } from '../../lib/page-language';
   import { cnilComplaintUrl, privacyContact, privacyCopy } from '../../lib/privacy';
 
   let language = $state<Language>('fr');
@@ -15,22 +16,12 @@
 
   onMount(() => {
     const requested = new URLSearchParams(window.location.search).get('lang');
-    let saved: string | null = null;
-    try {
-      saved = localStorage.getItem(languageKey);
-    } catch {
-      // The language remains selectable when storage is unavailable.
-    }
-    applyLanguage(requested === 'en' || (requested === null && saved === 'en') ? 'en' : 'fr');
+    applyLanguage(readPageLanguage(requested));
   });
 
   function selectLanguage(next: Language) {
     applyLanguage(next);
-    try {
-      localStorage.setItem(languageKey, next);
-    } catch {
-      // The return link also carries the selected language.
-    }
+    rememberPageLanguage(next);
   }
 </script>
 
