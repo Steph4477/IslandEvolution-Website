@@ -4,7 +4,7 @@
 
 Ouvrir le dossier `IslandEvolution-Website` dans VS Code avec **Fichier → Ouvrir le dossier**. Installer les extensions **Svelte for VS Code** et **Prettier - Code formatter**. Les réglages du dépôt choisissent Prettier, deux espaces et des fins de ligne LF. La configuration locale charge `prettier-plugin-svelte`.
 
-Dans le terminal intégré, utiliser Node.js 24 comme dans le workflow du projet.
+Dans le terminal intégré, utiliser Node.js 24.
 
 ```powershell
 node --version
@@ -45,7 +45,7 @@ npm run build
 npm run publish:pages -- --check-only
 ```
 
-`format` réécrit les sources selon la configuration. `format:check` contrôle leur conformité. `check` indique le fichier, la ligne et la nature des erreurs de Svelte ou TypeScript. Commencer par la première erreur, puis relancer la commande. `test` exécute les fichiers `tests/*.test.mjs`. Pour cibler le formulaire, lancer `node --test tests/beta-application.test.mjs`. `build` teste la compilation. Le mode `--check-only` utilise le vrai préfixe Pages et vérifie les fichiers de production sans publier.
+`format` réécrit les sources selon la configuration. `format:check` contrôle leur conformité. `check` indique le fichier, la ligne et la nature des erreurs de Svelte ou TypeScript. Commencer par la première erreur, puis relancer la commande. `test` exécute les fichiers `tests/*.test.mjs`. Pour cibler le formulaire, lancer `node --test tests/beta-application.test.mjs`. `build` teste la compilation. Le mode `--check-only` compile pour le domaine de production et vérifie l’artefact local sans publier.
 
 Ouvrir la **Console** et l’onglet **Réseau** du navigateur lorsqu’un problème ne se voit pas dans les tests Node. Pour chaque erreur, noter l’action, la route, la langue et la taille d’écran. Le [guide de dépannage](DEPANNAGE.md) donne les étapes par symptôme.
 
