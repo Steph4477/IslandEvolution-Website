@@ -1,3 +1,3 @@
 User-agent: *
 Allow: /
-Sitemap: https://steph4477.github.io/IslandEvolution-Website/sitemap.xml
+Sitemap: https://moko-islandevolution.com/sitemap.xml
