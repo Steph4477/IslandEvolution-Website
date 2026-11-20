@@ -40,6 +40,8 @@ The website offers an immersive introduction to the game's world, gameplay foota
 
 ## Documentation de maintenance
 
+La migration vers `https://moko-islandevolution.com/` est préparée. Les liens de cette page continuent de pointer vers le site GitHub Pages actuel jusqu’à la validation de la bascule. Le guide de déploiement décrit la configuration du domaine, les DNS OVHcloud et la recette des anciens liens.
+
 - [Architecture du site](docs/ARCHITECTURE.md)
 - [Guide de maintenance](docs/GUIDE_MAINTENANCE.md)
 - [Dépannage](docs/DEPANNAGE.md)

@@ -1,12 +1,13 @@
 import { execFileSync } from 'node:child_process';
-import { lstatSync, mkdtempSync, realpathSync, rmSync } from 'node:fs';
+import { lstatSync, mkdtempSync, readFileSync, realpathSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const buildDirectory = join(repository, 'build');
-const siteUrl = 'https://steph4477.github.io/IslandEvolution-Website/';
+const siteDomain = 'moko-islandevolution.com';
+const siteUrl = `https://${siteDomain}/`;
 const pagesBranch = 'gh-pages';
 const [option, ...extraOptions] = process.argv.slice(2);
 
@@ -31,13 +32,17 @@ function prepareBuild() {
     });
   }
 
-  for (const file of ['index.html', 'sitemap.xml', '.nojekyll']) {
+  for (const file of ['index.html', 'sitemap.xml', '.nojekyll', 'CNAME']) {
     if (!lstatSync(join(buildDirectory, file), { throwIfNoEntry: false })?.isFile()) {
       throw new Error(`Fichier requis absent du build : ${file}`);
     }
   }
   if (!lstatSync(join(buildDirectory, '_app'), { throwIfNoEntry: false })?.isDirectory()) {
     throw new Error('Dossier requis absent du build : _app/');
+  }
+  const cname = readFileSync(join(buildDirectory, 'CNAME'), 'utf8').replace(/\r?\n$/, '');
+  if (cname !== siteDomain) {
+    throw new Error(`build/CNAME doit contenir une seule ligne : ${siteDomain}`);
   }
 }
 
@@ -61,6 +66,14 @@ function publishBuild() {
       origin,
       checkout
     ]);
+    const remoteGit = ['-C', checkout];
+    const hasCname = git([...remoteGit, 'ls-tree', '--name-only', 'HEAD', '--', 'CNAME'], {
+      capture: true
+    });
+    if (!hasCname || git([...remoteGit, 'show', 'HEAD:CNAME'], { capture: true }) !== siteDomain) {
+      throw new Error(`Configurez d’abord ${siteDomain} dans GitHub Pages pour ${pagesBranch}.`);
+    }
+
     // Le clone fournit le commit parent et un index vide. Le build forme tout le nouvel arbre Git.
     const buildTree = [
       '-C',
@@ -98,12 +111,14 @@ function publishBuild() {
 }
 
 try {
-  if ((option !== undefined && option !== '--check-only') || extraOptions.length) {
-    throw new Error('Usage : npm run publish:pages [-- --check-only]');
+  if ((option !== '--check-only' && option !== '--publish') || extraOptions.length) {
+    throw new Error('Usage : npm run publish:pages -- <--check-only | --publish>');
   }
   prepareBuild();
-  console.log('Build de production vérifié : index.html, _app/, sitemap.xml et .nojekyll.');
-  if (!option) publishBuild();
+  console.log(
+    `Build de production vérifié pour ${siteUrl} : index.html, _app/, sitemap.xml, .nojekyll et CNAME.`
+  );
+  if (option === '--publish') publishBuild();
 } catch (error) {
   console.error(`GitHub Pages : ${error.message}`);
   process.exitCode = 1;
