@@ -220,8 +220,7 @@
         <small id="beta-email-help">{copy.emailHelp}</small>
         <small id="beta-email-error" class="error" aria-live="polite">
           {#if emailIssue === 'invalid'}
-            {@const { before, example, after } = copy.errors.emailFormat}
-            {before}<a href={`mailto:${example}`}>{example}</a>{after}
+            {copy.errors.emailFormat}
           {:else if emailError}
             {emailError}
           {/if}
@@ -354,9 +353,6 @@
   }
   .email-feedback .error:not(:empty) {
     margin-top: 0.4rem;
-  }
-  .email-feedback a {
-    color: inherit;
   }
   .action {
     justify-items: start;

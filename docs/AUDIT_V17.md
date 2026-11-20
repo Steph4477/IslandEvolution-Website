@@ -32,7 +32,7 @@ L’inventaire couvre les trois routes et les deux fichiers pour les robots, les
 
 ## Comparaison de la V1.7
 
-Chrome a exécuté la même recette sur le build initial et sur la V1.7, sur bureau (1 366 × 900) et en émulation tactile mobile (393 × 873). La recette couvre le passage de l’intro, le changement de langue, le refus de `test@gmail` et le retour du focus de la modale, la galerie au clavier, le saut et le Tir Coco, et les deux routes légales. Elle a contrôlé la console et l’absence de requête vidéo avant accord, puis le chargement après accord et le retrait avec un lecteur simulé. Les requêtes YouTube de ce test ont été interceptées localement.
+Chrome a exécuté la même recette sur le build initial et sur la V1.7, sur bureau (1 366 × 900) et en émulation tactile mobile (393 × 873). La recette couvre le passage de l’intro, le changement de langue, le refus d’une adresse sans extension et le retour du focus de la modale, la galerie au clavier, le saut et le Tir Coco, et les deux routes légales. Elle a contrôlé la console et l’absence de requête vidéo avant accord, puis le chargement après accord et le retrait avec un lecteur simulé. Les requêtes YouTube de ce test ont été interceptées localement.
 
 Les captures de l’accueil et de la modale sont identiques avant et après dans les deux tailles, en mouvement réduit. La modale mobile défile pour donner accès à l’intégralité des consignes placées sous le bouton. Cette recette ne couvre ni un téléphone Redmi physique, ni un lecteur d’écran, ni l’ouverture du client de messagerie natif, ni la lecture d’une vidéo depuis les serveurs YouTube.
 

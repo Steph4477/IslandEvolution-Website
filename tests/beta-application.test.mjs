@@ -25,19 +25,19 @@ test('a Google Play email is required and must have a complete domain', () => {
 
   for (const email of [
     'explorer',
-    'test@gmail',
-    '  test@gmail  ',
+    'test@example',
+    '  test@example  ',
     'test@',
-    'test.com',
-    'test@gmail.',
-    'test@gmail..com',
+    'example.org',
+    'test@example.org.',
+    'test@example..org',
     '@example.org',
     'explorer@-example.org',
     'two addresses@example.org',
-    'test@ gmail.com',
-    'test@gmail .com',
+    'test@ example.org',
+    'test@example .org',
     'é@example.org',
-    'explorer@' + 'a'.repeat(64) + '.org'
+    'explorer@' + 'a'.repeat(64) + '.example.org'
   ]) {
     const invalid = { ...application, email };
     assert.equal(validateBetaApplication(invalid).email, 'invalid', email);
@@ -48,7 +48,7 @@ test('a Google Play email is required and must have a complete domain', () => {
   }
 });
 
-test('Google Play emails can use Gmail, another provider or a custom domain', () => {
+test('Google Play emails accept subdomains and punycode', () => {
   assert.deepEqual(validateBetaApplication(application), {
     email: undefined,
     nickname: undefined,
@@ -56,11 +56,10 @@ test('Google Play emails can use Gmail, another provider or a custom domain', ()
     policyRead: false
   });
   for (const email of [
-    'test@gmail.com',
-    'test@outlook.fr',
-    'test@yahoo.com',
-    'test@play.example.co.uk',
-    'explorer@xn--caf-dma.example'
+    'test@example.org',
+    'test@play.example.org',
+    'test@mobile.play.example.org',
+    'explorer@xn--caf-dma.example.org'
   ]) {
     const valid = { ...application, email };
     assert.equal(validateBetaApplication(valid).email, undefined, email);
@@ -139,8 +138,10 @@ test('mailto encodes the French and English subjects and bodies independently', 
 
 test('address and nickname limits are enforced directly by the generator', () => {
   const local = 'a'.repeat(64) + '@';
-  const domain = ['b'.repeat(63), 'c'.repeat(63), 'd'.repeat(63)].join('.');
-  const email = local + domain.slice(0, betaEmailMaxLength - local.length);
+  const subdomains = ['b'.repeat(63), 'c'.repeat(63), 'd'.repeat(63)].join('.');
+  const suffix = '.example.org';
+  const subdomainsLength = betaEmailMaxLength - local.length - suffix.length;
+  const email = local + subdomains.slice(0, subdomainsLength) + suffix;
   const nickname = '🥥'.repeat(betaNicknameMaxLength / 2);
   assert.ok(buildBetaMailto('fr', { ...application, email, nickname }));
   assert.equal(validateBetaApplication({ ...application, email: ` ${email} ` }).email, undefined);

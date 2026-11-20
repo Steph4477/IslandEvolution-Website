@@ -80,11 +80,7 @@ export const translations = {
       errors: {
         missing: 'Indique ton adresse Google Play.',
         invalid: 'Saisis une adresse e-mail valide.',
-        emailFormat: {
-          before: 'Saisis une adresse e-mail valide (exemple : ',
-          example: 'joueur@gmail.com',
-          after: ').'
-        },
+        emailFormat: 'Saisis une adresse e-mail valide (exemple : joueur@example.org).',
         androidConfirmed:
           'Confirme que tu disposes d’un appareil Android avec accès à Google Play.',
         policyRead: 'Confirme que tu as lu la politique de confidentialité.'
@@ -258,11 +254,7 @@ export const translations = {
       errors: {
         missing: 'Enter your Google Play email.',
         invalid: 'Enter a valid email address.',
-        emailFormat: {
-          before: 'Enter a valid email address (e.g. ',
-          example: 'player@gmail.com',
-          after: ').'
-        },
+        emailFormat: 'Enter a valid email address (e.g. player@example.org).',
         androidConfirmed: 'Confirm that you have an Android device with access to Google Play.',
         policyRead: 'Confirm that you have read the Privacy Policy.'
       }
