@@ -89,15 +89,15 @@ test('privacy acknowledgement is required and a nickname is optional', () => {
 });
 
 test('mailto encodes the French and English subjects and bodies independently', () => {
-  const nickname = 'Éléonore 🧑‍🚀 <b>Moko</b> & ? # + %';
+  const nickname = 'Éléonore \u{1f9d1}\u200d\u{1f680} <b>Moko</b> & ? # + %';
   for (const [language, subject, body] of [
     [
       'fr',
-      'Candidature bêta Android — MOKO Island Evolution',
+      'Candidature bêta Android - MOKO Island Evolution',
       [
         'Bonjour,',
         '',
-        'Je souhaite participer à la bêta Android de MOKO – Island Evolution.',
+        'Je souhaite participer à la bêta Android de MOKO - Island Evolution.',
         '',
         `Pseudo : ${nickname}`,
         'Adresse Google Play : explorer+android@example.org',
@@ -108,11 +108,11 @@ test('mailto encodes the French and English subjects and bodies independently', 
     ],
     [
       'en',
-      'Android Beta Application — MOKO Island Evolution',
+      'Android Beta Application - MOKO Island Evolution',
       [
         'Hello,',
         '',
-        'I would like to participate in the Android beta of MOKO – Island Evolution.',
+        'I would like to participate in the Android beta of MOKO - Island Evolution.',
         '',
         `Nickname: ${nickname}`,
         'Google Play email: explorer+android@example.org',
@@ -142,7 +142,7 @@ test('address and nickname limits are enforced directly by the generator', () =>
   const suffix = '.example.org';
   const subdomainsLength = betaEmailMaxLength - local.length - suffix.length;
   const email = local + subdomains.slice(0, subdomainsLength) + suffix;
-  const nickname = '🥥'.repeat(betaNicknameMaxLength / 2);
+  const nickname = '\u{1f965}'.repeat(betaNicknameMaxLength / 2);
   assert.ok(buildBetaMailto('fr', { ...application, email, nickname }));
   assert.equal(validateBetaApplication({ ...application, email: ` ${email} ` }).email, undefined);
   const oversizedEmail = { ...application, email: 'a' + email };

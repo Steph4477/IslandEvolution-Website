@@ -63,14 +63,14 @@ export function buildBetaMailto(language: 'fr' | 'en', application: Application)
   const email = trimBetaEmail(application.email);
   const subject =
     language === 'fr'
-      ? 'Candidature bêta Android — MOKO Island Evolution'
-      : 'Android Beta Application — MOKO Island Evolution';
+      ? 'Candidature bêta Android - MOKO Island Evolution'
+      : 'Android Beta Application - MOKO Island Evolution';
   const lines =
     language === 'fr'
       ? [
           'Bonjour,',
           '',
-          'Je souhaite participer à la bêta Android de MOKO – Island Evolution.',
+          'Je souhaite participer à la bêta Android de MOKO - Island Evolution.',
           '',
           `Pseudo : ${nickname || 'Non renseigné'}`,
           `Adresse Google Play : ${email}`,
@@ -81,7 +81,7 @@ export function buildBetaMailto(language: 'fr' | 'en', application: Application)
       : [
           'Hello,',
           '',
-          'I would like to participate in the Android beta of MOKO – Island Evolution.',
+          'I would like to participate in the Android beta of MOKO - Island Evolution.',
           '',
           `Nickname: ${nickname || 'Not provided'}`,
           `Google Play email: ${email}`,

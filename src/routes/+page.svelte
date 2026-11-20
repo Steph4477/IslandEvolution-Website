@@ -8,7 +8,7 @@
     socialImage,
     socialImageAlts,
     structuredData,
-    title
+    titles
   } from '../lib/seo';
   import MokoLiana from '../lib/components/MokoLiana.svelte';
   import CinematicIntro from '../lib/components/CinematicIntro.svelte';
@@ -52,6 +52,7 @@
   const videosAllowed = $derived(videoConsent === 'allowed');
   const privacyUrl = $derived(`${resolve('/confidentialite')}/?lang=${language}`);
   const betaStatus = $derived(betaApplicationsOpen ? copy.betaOpenStatus : copy.betaStatus);
+  const title = $derived(titles[language]);
   const description = $derived(descriptions[language]);
   const socialImageAlt = $derived(socialImageAlts[language]);
   const difficultyRunes = [
@@ -207,7 +208,7 @@
     <meta name="twitter:image" content={socialImage} />
     <meta name="twitter:image:alt" content={socialImageAlt} />
   {/if}
-  {@html structuredData}
+  {@html structuredData(language)}
 </svelte:head>
 
 <div class="page">
@@ -266,7 +267,7 @@
                   src={asset('images/moko-title.png')}
                   width="1920"
                   height="819"
-                  alt="MOKO – ISLAND EVOLUTION"
+                  alt="MOKO - ISLAND EVOLUTION"
                   decoding="async"
                   fetchpriority="low"
                 />

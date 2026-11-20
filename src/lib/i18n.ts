@@ -8,7 +8,7 @@ export const translations = {
     showMoko: 'Afficher Moko',
     hideMoko: 'Masquer Moko',
     skip: 'Passer l’intro',
-    intro: "Une île mystérieuse. Une jungle qui évolue. Moko face à l'inconnu.",
+    intro: "Une île mystérieuse. Des paysages variés. Moko face à l'inconnu.",
     skipToContent: 'Aller au contenu',
     joinBeta: 'Rejoindre la bêta',
     betaLaunch: {
@@ -182,7 +182,7 @@ export const translations = {
     showMoko: 'Show Moko',
     hideMoko: 'Hide Moko',
     skip: 'Skip intro',
-    intro: 'A mysterious island. An evolving jungle. Moko faces the unknown.',
+    intro: 'A mysterious island. Varied landscapes. Moko faces the unknown.',
     skipToContent: 'Skip to content',
     joinBeta: 'Join the Beta',
     betaLaunch: {

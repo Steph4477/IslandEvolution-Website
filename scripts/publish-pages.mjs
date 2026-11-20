@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
-import { lstatSync, mkdtempSync, readFileSync, realpathSync, rmSync } from 'node:fs';
+import { lstatSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
@@ -11,11 +11,13 @@ const siteUrl = `https://${siteDomain}/`;
 const pagesBranch = 'gh-pages';
 const [option, ...extraOptions] = process.argv.slice(2);
 
-function git(args, { capture = false } = {}) {
+function git(args, { capture = false, input } = {}) {
+  const stdin = input !== undefined ? 'pipe' : capture ? 'ignore' : 'inherit';
   return execFileSync('git', args, {
     cwd: repository,
     encoding: 'utf8',
-    stdio: capture ? ['ignore', 'pipe', 'inherit'] : 'inherit'
+    input,
+    stdio: [stdin, capture ? 'pipe' : 'inherit', 'inherit']
   })?.trim();
 }
 
@@ -81,7 +83,30 @@ function publishBuild() {
       `--git-dir=${join(checkout, '.git')}`,
       `--work-tree=${buildDirectory}`
     ];
-    git([...buildTree, '-c', 'core.autocrlf=false', 'add', '--all', '--force', '--', '.']);
+    const paths = readdirSync(buildDirectory, { recursive: true, withFileTypes: true })
+      .filter((entry) => !entry.isDirectory())
+      .map((entry) => {
+        const path = relative(buildDirectory, join(entry.parentPath, entry.name))
+          .split(sep)
+          .join('/');
+        if (!entry.isFile() || entry.name.toLowerCase() === 'agents.md') {
+          throw new Error(`Fichier non autorisé dans le build : ${path}`);
+        }
+        return path;
+      });
+    git(
+      [
+        ...buildTree,
+        '-c',
+        'core.autocrlf=false',
+        '--literal-pathspecs',
+        'add',
+        '--force',
+        '--pathspec-from-file=-',
+        '--pathspec-file-nul'
+      ],
+      { input: paths.join('\0') + '\0' }
+    );
 
     if (!git([...buildTree, 'diff', '--cached', '--name-only'], { capture: true })) {
       console.log('Le build est déjà présent sur origin/gh-pages.');

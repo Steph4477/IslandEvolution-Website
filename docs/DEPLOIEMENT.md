@@ -1,6 +1,6 @@
 # Déploiement GitHub Pages
 
-Le [site actuellement en ligne](https://steph4477.github.io/IslandEvolution-Website/) est servi depuis la racine de `origin/gh-pages`. `main` contient les sources, les tests et les guides. L’adresse de production préparée est `https://moko-islandevolution.com/`.
+Le [site officiel](https://moko-islandevolution.com/) est servi depuis la racine de `origin/gh-pages`. `main` contient les sources, les tests et les guides.
 
 La validation et la compilation s’effectuent en local. Le script local est le seul mode de publication du projet. Il pousse l’artefact sur `gh-pages`, puis GitHub Pages déploie la racine de cette branche via son mécanisme intégré. [Publication depuis une branche](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site#publishing-from-a-branch)
 
@@ -21,24 +21,24 @@ Le script de publication fixe `VITE_SITE_URL` à `https://moko-islandevolution.c
 
 `--check-only` exécute `check`, `test` et `build`, puis contrôle l’artefact local sans lancer de commande Git. `static/CNAME` est recopié dans `build/CNAME` et doit contenir une seule ligne `moko-islandevolution.com`. Le script exige aussi `index.html`, `_app/`, `sitemap.xml` et `.nojekyll`. Ce dernier permet à Pages de servir `_app/`. Pour une recette locale après ce build, lancer `npm run preview` avec la même valeur de `VITE_SITE_URL`.
 
-## Configuration DNS cible
+## Configuration DNS de référence
 
-Dans la zone DNS OVHcloud, préparer les entrées suivantes. La racine correspond à un champ **Sous-domaine** vide.
+La configuration de référence du domaine est indiquée ci-dessous. Dans la zone DNS OVHcloud, la racine correspond à un champ **Sous-domaine** vide.
 
 | Hôte                                | Type              | Cible                                                                                                       |
 | ----------------------------------- | ----------------- | ----------------------------------------------------------------------------------------------------------- |
-| Racine                              | `A`               | `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153` — quatre entrées                 |
-| Racine                              | `AAAA` facultatif | `2606:50c0:8000::153`, `2606:50c0:8001::153`, `2606:50c0:8002::153`, `2606:50c0:8003::153` — quatre entrées |
+| Racine                              | `A`               | `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153` - quatre entrées                 |
+| Racine                              | `AAAA` facultatif | `2606:50c0:8000::153`, `2606:50c0:8001::153`, `2606:50c0:8002::153`, `2606:50c0:8003::153` - quatre entrées |
 | `www`                               | `CNAME`           | `steph4477.github.io.`                                                                                      |
 | `_github-pages-challenge-steph4477` | `TXT`             | Valeur affichée par GitHub lors de la vérification du domaine                                               |
 
 La vérification du compte utilise le TXT et précède la bascule web. Conserver ce TXT après confirmation. GitHub Pages gère la redirection de `www` vers le domaine racine.
 
-Lors de la bascule web, remplacer le `A` racine actuel vers `213.186.33.5` et retirer son TXT de redirection `1|www.moko-islandevolution.com`. Sur `www`, retirer le `A` vers `213.186.33.5` et le TXT de parking `3|welcome` pour rendre le nom disponible pour le `CNAME`. Vérifier les valeurs dans la console avant de les retirer. Conserver les NS, les MX, le SPF, le DNSSEC, les éventuels DKIM et DMARC et les autres entrées de messagerie. L’alias `ftp` est distinct de `www` et pointe vers le domaine racine. Sa résolution suivra donc la nouvelle adresse de la racine.
+Avant la bascule, la racine et `www` pointaient vers `213.186.33.5`. Les TXT web de l’ancienne configuration étaient `1|www.moko-islandevolution.com` à la racine et `3|welcome` sur `www`. Lors d’une nouvelle intervention DNS, vérifier les valeurs en place et conserver les NS, les MX, le SPF, le DNSSEC, les éventuels DKIM et DMARC et les autres entrées de messagerie. L’alias `ftp` est distinct de `www` et suit l’adresse du domaine racine.
 
 [Configurer le domaine dans GitHub Pages](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site) · [Éditer la zone DNS OVHcloud](https://docs.ovhcloud.com/fr/guides/web-cloud/domains/dns-zone-edit)
 
-## Bascule du domaine après autorisation
+## Procédure de référence pour la bascule du domaine
 
 1. Relire le diff local, vérifier l’exclusion d’`AGENTS.md`, relever les anciennes URL diffusées et conserver le hash du dernier artefact fonctionnel sur `gh-pages`. Exporter la zone OVHcloud avant intervention.
 2. Valider les cinq contrôles V1.7 et le build à la racine. Vérifier ses métadonnées, les pages légales, les ressources locales et le contenu de `build/CNAME`.
@@ -62,7 +62,7 @@ Contrôler la branche `main`, le diff, le contenu autorisé, l’identité Git e
 npm run publish:pages -- --publish
 ```
 
-Le script reconstruit et contrôle l’artefact, clone uniquement la branche Pages dans un dossier temporaire et vérifie que son `CNAME` cible le domaine. Il prépare l’arbre complet à partir de `build/`, avec `CNAME` et `.nojekyll`. Si l’arbre a changé, le nouveau commit cite le hash des sources et descend du dernier commit de `gh-pages`. Le push vise cette seule branche. Le clone temporaire est retiré à la fin.
+Le script reconstruit et contrôle l’artefact, clone uniquement la branche Pages dans un dossier temporaire et vérifie que son `CNAME` cible le domaine. Il indexe la liste explicite des fichiers de `build/`, dont `CNAME` et `.nojekyll`. Si l’arbre a changé, le nouveau commit cite le hash des sources et descend du dernier commit de `gh-pages`. Le push vise cette seule branche. Le clone temporaire est retiré à la fin.
 
 Vérifier la référence publiée avec `git ls-remote origin refs/heads/gh-pages`, contrôler l’état du déploiement GitHub Pages associé à ce commit et effectuer les contrôles HTTP et navigateur. Si un push est refusé parce que la branche a avancé, examiner le nouveau commit distant avant de relancer.
 
