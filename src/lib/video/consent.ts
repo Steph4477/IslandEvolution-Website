@@ -1,9 +1,11 @@
 export type VideoConsent = 'allowed' | 'refused';
-
 export const videoConsentKey = 'island-evolution:youtube-consent';
 export const videoConsentMaxAge = 180 * 24 * 60 * 60 * 1000;
 
-export function readVideoConsent(raw: string | null, now = Date.now()): VideoConsent | null {
+export function parseVideoConsent(
+  raw: string | null,
+  now = Date.now()
+): { choice: VideoConsent; expiresAt: number } | null {
   if (!raw) return null;
   try {
     const { choice, expiresAt } = JSON.parse(raw) ?? {};
@@ -13,9 +15,31 @@ export function readVideoConsent(raw: string | null, now = Date.now()): VideoCon
       expiresAt > now &&
       expiresAt <= now + videoConsentMaxAge
     )
-      return choice;
+      return { choice, expiresAt };
   } catch {
-    // Un choix absent ou invalide ne doit jamais charger les lecteurs.
+    // Une préférence illisible ne vaut pas accord.
   }
   return null;
+}
+
+export function readVideoConsent(raw: string | null, now = Date.now()) {
+  return parseVideoConsent(raw, now)?.choice ?? null;
+}
+export function saveVideoChoice(choice: VideoConsent) {
+  try {
+    localStorage.setItem(
+      videoConsentKey,
+      JSON.stringify({ choice, expiresAt: Date.now() + videoConsentMaxAge })
+    );
+    return true;
+  } catch {
+    if (choice === 'refused') {
+      try {
+        localStorage.removeItem(videoConsentKey);
+      } catch {
+        /* Le blocage local reste actif. */
+      }
+    }
+    return false;
+  }
 }

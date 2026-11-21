@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { flushSync, onMount, tick } from 'svelte';
+  import { onMount } from 'svelte';
   import { asset, resolve } from '$app/paths';
   import { trackAnalyticsEvent } from '../lib/analytics/umami';
   import {
@@ -26,19 +26,12 @@
   import { acceptsSkill, type SkillsState } from '../lib/scene/skills-actions';
   import { introProgress, introTiming } from '../lib/scene/intro-timeline';
   import { observeScroll } from '../lib/scene/scroll-controller';
-  import {
-    readVideoConsent,
-    videoConsentKey,
-    videoConsentMaxAge,
-    type VideoConsent
-  } from '../lib/video/consent';
+  import { getPreferences } from '../lib/preferences';
+  const preferences = getPreferences();
 
   let betaDialog: ReturnType<typeof BetaApplicationDialog> | undefined = $state();
   let showMoko = $state(true);
   let world: HTMLDivElement;
-  let videoConsent = $state<VideoConsent | null>(null);
-  let firstVideoHeading: HTMLHeadingElement;
-  let videoPreferences: HTMLElement;
   let skillsCopy: HTMLDivElement;
   let moko: ReturnType<typeof MokoLiana> | undefined = $state();
   let skillsState = $state<SkillsState>('unavailable');
@@ -50,7 +43,7 @@
   let treePlane = $state<HTMLDivElement>();
   let language = $state<Language>('fr');
   const copy = $derived(translations[language]);
-  const videosAllowed = $derived(videoConsent === 'allowed');
+  const videosAllowed = $derived(preferences.videosAllowed);
   const privacyUrl = $derived(`${resolve('/confidentialite')}/?lang=${language}`);
   const betaStatus = $derived(betaApplicationsOpen ? copy.betaOpenStatus : copy.betaStatus);
   const title = $derived(titles[language]);
@@ -71,27 +64,6 @@
     const requested = new URLSearchParams(window.location.search).get('lang');
     // L’accueil ignore une valeur inconnue et revient alors à la préférence enregistrée.
     applyLanguage(readPageLanguage(requested === 'fr' || requested === 'en' ? requested : null));
-
-    try {
-      videoConsent = readVideoConsent(localStorage.getItem(videoConsentKey));
-    } catch {
-      // Les aperçus locaux restent visibles quand le stockage est indisponible.
-    }
-    try {
-      const returnKey = videoConsentKey + ':return';
-      if (sessionStorage.getItem(returnKey)) {
-        sessionStorage.removeItem(returnKey);
-        videoPreferences.focus({ preventScroll: true });
-      }
-    } catch {
-      // Les commandes restent utilisables quand la restauration du focus est impossible.
-    }
-    function syncVideoConsent(event: StorageEvent) {
-      if (event.key === videoConsentKey || event.key === null) {
-        applyVideoConsent(readVideoConsent(event.newValue));
-      }
-    }
-    window.addEventListener('storage', syncVideoConsent);
 
     const skillsVisibility = new IntersectionObserver(
       ([entry]) => {
@@ -114,7 +86,6 @@
       skillsVisibility.disconnect();
       stopWorldScroll();
       worldSize.disconnect();
-      window.removeEventListener('storage', syncVideoConsent);
     };
   });
 
@@ -125,61 +96,24 @@
 
   function finishIntro() {
     introActive = false;
-  }
-
-  function applyVideoConsent(next: VideoConsent | null) {
-    if (videoConsent === 'allowed' && next !== 'allowed') {
-      // Détruire les lecteurs avant de recharger la page pour décharger aussi l’API tierce.
-      flushSync(() => {
-        videoConsent = next;
-      });
-      window.location.reload();
-    } else {
-      videoConsent = next;
-    }
-  }
-
-  async function chooseVideoConsent(next: VideoConsent, fromPreview: boolean) {
-    const withdrawing = videoConsent === 'allowed' && next === 'refused';
-    try {
-      localStorage.setItem(
-        videoConsentKey,
-        JSON.stringify({ choice: next, expiresAt: Date.now() + videoConsentMaxAge })
-      );
-    } catch {
-      // Le choix reste applicable pour la visite en cours.
-    }
-    if (withdrawing && !fromPreview)
-      try {
-        sessionStorage.setItem(videoConsentKey + ':return', '1');
-      } catch {
-        // Le focus peut ne pas être restauré au rechargement si le stockage est bloqué.
-      }
-    applyVideoConsent(next);
-    if (fromPreview) {
-      await tick();
-      firstVideoHeading.focus({ preventScroll: true });
-    }
+    preferences.finishIntro();
   }
 </script>
 
-{#snippet videoConsentCopy()}
-  <div class="video-consent-copy">
-    <p class="video-consent-title">{copy.videoConsent.title}</p>
-    <p>{copy.videoConsent.description}</p>
-    <a href="https://policies.google.com/privacy?hl={language}">{copy.videoConsent.policy}</a>
-  </div>
-{/snippet}
-
-{#snippet videoChoices(fromPreview: boolean)}
-  <div class="video-choices">
-    <button type="button" onclick={() => chooseVideoConsent('allowed', fromPreview)}
-      >{copy.videoConsent.allow}</button
-    >
-    <button type="button" onclick={() => chooseVideoConsent('refused', fromPreview)}
-      >{copy.videoConsent.refuse}</button
-    >
-  </div>
+{#snippet privacyButton(source: 'video' | 'footer')}
+  <button
+    type="button"
+    class="privacy-button"
+    data-privacy-open={source}
+    aria-haspopup="dialog"
+    onclick={(event) => preferences.open(event.currentTarget)}
+  >
+    {source === 'footer'
+      ? language === 'fr'
+        ? 'Votre confidentialité'
+        : 'Your privacy'
+      : copy.videoConsent.preferences}
+  </button>
 {/snippet}
 
 <svelte:head>
@@ -321,7 +255,7 @@
 
         <section id="aventure" class="adventure" aria-labelledby="aventure-title">
           <div class="adventure-copy">
-            <h2 id="aventure-title" tabindex="-1" bind:this={firstVideoHeading}>
+            <h2 id="aventure-title" tabindex="-1">
               {copy.adventure.title}
             </h2>
             <p><strong>{copy.adventure.tagline}</strong></p>
@@ -336,12 +270,7 @@
               allowed={videosAllowed}
               onManualPlayback={() => trackAnalyticsEvent({ name: 'teaser_play' })}
             />
-            {#if videoConsent === null}
-              <div class="video-consent-panel">
-                {@render videoConsentCopy()}
-                {@render videoChoices(true)}
-              </div>
-            {/if}
+            {#if !videosAllowed}{@render privacyButton('video')}{/if}
           </div>
         </section>
 
@@ -376,6 +305,7 @@
               labels={{ ...copy.adventure, play: copy.difficulties.play }}
               allowed={videosAllowed}
             />
+            {#if !videosAllowed}{@render privacyButton('video')}{/if}
           </div>
         </section>
 
@@ -393,6 +323,7 @@
               labels={{ ...copy.adventure, play: copy.endgame.play }}
               allowed={videosAllowed}
             />
+            {#if !videosAllowed}{@render privacyButton('video')}{/if}
           </div>
         </section>
 
@@ -495,14 +426,7 @@
       <a href={privacyUrl}>{copy.betaApplication.privacy}</a>
       <a href={`${resolve('/mentions-legales')}/?lang=${language}`}>{copy.legalNotice}</a>
     </div>
-    <details class="footer-video-preferences">
-      <summary bind:this={videoPreferences}>{copy.videoConsent.preferences}</summary>
-      <div class="video-consent-panel">
-        <p role="status">{copy.videoConsent[videoConsent ?? 'undecided']}</p>
-        {@render videoConsentCopy()}
-        {@render videoChoices(false)}
-      </div>
-    </details>
+    {@render privacyButton('footer')}
     <a class="footer-contact" href={`mailto:${privacyContact}`}>{privacyContact}</a>
     <small class="footer-copyright">{copy.footerCopyright}</small>
   </footer>
@@ -874,73 +798,20 @@
     margin-top: 0.9rem;
   }
 
-  .video-consent-panel {
-    display: grid;
-    gap: 0.5rem;
-    padding: 0.55rem 0.7rem;
-    border: 1px solid #b69a5980;
-    border-radius: 0.55rem;
-    background: #142019;
-    color: #fff2dc;
-    font-size: 0.85rem;
-    line-height: 1.35;
-    text-align: start;
-  }
-  .adventure-video .video-consent-panel {
-    margin-top: 0.45rem;
-  }
-  .video-consent-copy {
-    min-width: 0;
-  }
-  .video-consent-panel p {
-    max-width: none;
-    margin: 0;
-    color: inherit;
-    font-size: inherit;
-    line-height: inherit;
-  }
-  .video-consent-panel .video-consent-title {
-    margin-bottom: 0.15rem;
-    color: #f1cf8e;
-    font-weight: 750;
-  }
-  .video-consent-panel a {
-    color: #f1cf8e;
-    font-size: 0.78rem;
-  }
-  .video-choices {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.45rem;
-  }
-  .video-choices button {
+  .privacy-button {
     min-height: 44px;
-    padding: 0.4rem 0.55rem;
-    border: 1px solid #d4b473;
-    border-radius: 0.45rem;
-    background: #213528;
-    color: #fff2dc;
+    padding: 0.45rem 0.75rem;
     font: inherit;
-    font-weight: 650;
+    color: #f1cf8e;
+    background: #142019;
+    border: 1px solid #b69a59;
+    border-radius: 0.4rem;
     cursor: pointer;
   }
-  .video-choices button:hover {
-    background: #2d4536;
+  .privacy-button:focus-visible {
+    outline: 2px solid #f1cf8e;
+    outline-offset: 2px;
   }
-  @media (min-width: 740px) {
-    .video-consent-panel {
-      grid-template-columns: minmax(0, 1fr) auto;
-      align-items: center;
-      gap: 0.45rem 0.85rem;
-    }
-    .video-consent-panel > [role='status'] {
-      grid-column: 1 / -1;
-    }
-    .video-choices {
-      grid-template-columns: repeat(2, minmax(6.6rem, 1fr));
-    }
-  }
-
   .difficulty-list {
     display: grid;
     max-width: 52rem;
@@ -1048,19 +919,6 @@
   .footer-legal a {
     font-size: 0.92rem;
     text-underline-offset: 0.18em;
-  }
-  .footer-video-preferences {
-    width: min(100%, 36rem);
-    font-size: 0.92rem;
-  }
-  .footer-video-preferences summary {
-    color: #f1cf8e;
-    cursor: pointer;
-    text-underline-offset: 0.18em;
-    text-decoration: underline;
-  }
-  .footer-video-preferences .video-consent-panel {
-    margin-top: 0.7rem;
   }
   .site-footer .footer-contact {
     color: #d8cbad;

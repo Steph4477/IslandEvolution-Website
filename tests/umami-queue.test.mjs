@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 import test from 'node:test';
+import { readCampaignQuery } from '../src/lib/analytics/campaign.ts';
 import {
   analyticsConsentKey,
   analyticsConsentMaxAge,
@@ -11,22 +12,26 @@ import {
 
 const source = readFileSync(new URL('../src/lib/analytics/umami.ts', import.meta.url), 'utf8');
 const consentUrl = new URL('../src/lib/analytics/consent.ts', import.meta.url).href;
-const moduleSource = ts.transpileModule(source.replace("'./consent'", JSON.stringify(consentUrl)), {
-  compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ESNext }
-}).outputText;
+const campaignUrlPath = new URL('../src/lib/analytics/campaign.ts', import.meta.url).href;
+const moduleSource = ts.transpileModule(
+  source
+    .replace("'./consent'", JSON.stringify(consentUrl))
+    .replace("'./campaign'", JSON.stringify(campaignUrlPath)),
+  { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ESNext } }
+).outputText;
 const moduleUrl =
   'data:text/javascript,' +
   encodeURIComponent('import.meta.env = { VITE_UMAMI_ENABLED: "true" };\n' + moduleSource);
 let instance = 0;
 
-async function setup(t, choice = 'allowed', duration = analyticsConsentMaxAge) {
+async function setup(t, choice = 'allowed', duration = analyticsConsentMaxAge, search = '') {
   t.mock.timers.enable({ apis: ['Date', 'setTimeout'], now: 1760000000000 });
   const scripts = [];
   const sent = [];
   const values = new Map();
   const trackerWindow = {};
   const globals = {
-    location: { origin: 'https://moko-islandevolution.com' },
+    location: { origin: 'https://moko-islandevolution.com', search },
     localStorage: {
       getItem: (key) => values.get(key) ?? null,
       setItem: (key, value) => values.set(key, value)
@@ -314,4 +319,151 @@ test('le filtre du traceur rejette un envoi dont l’accord change pendant l’a
   assert.deepEqual(writes, [true, true]);
   assert.equal(filtered, null);
   assert.deepEqual(analytics.events(), []);
+});
+
+const linkedinQuery = 'utm_source=linkedin&utm_medium=social&utm_campaign=beta_android';
+const campaignUrl = (route = '/') => route + '?' + linkedinQuery;
+
+test('les cinq sources produisent uniquement le triplet marketing attendu', () => {
+  for (const [source, medium] of [
+    ['linkedin', 'social'],
+    ['facebook', 'social'],
+    ['tiktok', 'social'],
+    ['youtube', 'social'],
+    ['google', 'organic']
+  ]) {
+    const query = 'utm_source=' + source + '&utm_medium=' + medium + '&utm_campaign=beta_android';
+    assert.equal(
+      readCampaignQuery(
+        '?' + query + '&utm_content=prive&utm_term=prive&email=faux%40example.invalid'
+      ),
+      query
+    );
+  }
+});
+
+test('les triplets incomplets, inconnus, longs ou répétés sont écartés', () => {
+  for (const query of [
+    '',
+    'utm_source=linkedin&utm_campaign=beta_android',
+    linkedinQuery.replace('linkedin', 'inconnu'),
+    linkedinQuery.replace('linkedin', 'LinkedIn'),
+    linkedinQuery.replace('linkedin', 'linkedin'.repeat(100)),
+    linkedinQuery.replace('linkedin', 'linkedin%20'),
+    linkedinQuery.replace('linkedin', 'google'),
+    linkedinQuery.replace('social', 'organic'),
+    linkedinQuery.replace('beta_android', 'beta_android_2'),
+    linkedinQuery + '&utm_%73ource=linkedin',
+    linkedinQuery + '&utm_medium=social',
+    linkedinQuery + '&utm_campaign=beta_android'
+  ]) {
+    assert.equal(readCampaignQuery('?' + query), undefined);
+  }
+});
+
+test('la campagne d’arrivée attend l’accord et accompagne les vues et événements bêta', async (t) => {
+  const analytics = await setup(t, null, undefined, '?' + linkedinQuery + '&pseudo=fictif');
+  analytics.trackAnalyticsEvent({ name: 'beta_open' });
+  assert.deepEqual(analytics.scripts, []);
+  assert.deepEqual(analytics.sent, []);
+
+  location.search = '';
+  analytics.setAnalyticsPage('/confidentialite');
+  analytics.storeChoice('allowed');
+  analytics.setAnalyticsConsent('allowed');
+  analytics.trackAnalyticsEvent({ name: 'beta_open' });
+  analytics.load();
+  analytics.setAnalyticsPage('/confidentialite/');
+  analytics.setAnalyticsPage('/');
+  analytics.trackAnalyticsEvent({ name: 'beta_mailto' });
+  analytics.trackAnalyticsEvent({ name: 'teaser_play' });
+  analytics.trackAnalyticsEvent({ name: 'external_link', category: 'social' });
+
+  assert.deepEqual(
+    analytics.sent.map(({ name, url }) => [name, url]),
+    [
+      [undefined, campaignUrl('/confidentialite/')],
+      ['beta_open', campaignUrl('/confidentialite/')],
+      [undefined, campaignUrl()],
+      ['beta_mailto', campaignUrl()],
+      ['teaser_play', '/'],
+      ['external_link', '/']
+    ]
+  );
+});
+
+test('le retrait efface la campagne et un nouvel accord ne la relit pas', async (t) => {
+  const analytics = await setup(t, 'allowed', undefined, '?' + linkedinQuery);
+  analytics.load();
+  assert.equal(analytics.sent[0].url, campaignUrl());
+  analytics.setAnalyticsConsent('refused');
+  analytics.storeChoice('refused');
+  analytics.trackAnalyticsEvent({ name: 'beta_open' });
+  assert.equal(analytics.sent.length, 1);
+
+  assert.equal(saveAnalyticsChoice('allowed'), true);
+  analytics.setAnalyticsConsent('allowed');
+  analytics.trackAnalyticsEvent({ name: 'beta_open' });
+  assert.deepEqual(
+    analytics.sent.map(({ url }) => url),
+    [campaignUrl(), '/', '/']
+  );
+});
+
+test('un refus explicite avant accord efface la campagne en attente', async (t) => {
+  const analytics = await setup(t, 'refused', undefined, '?' + linkedinQuery);
+  assert.equal(saveAnalyticsChoice('allowed'), true);
+  analytics.setAnalyticsConsent('allowed');
+  analytics.load();
+  assert.equal(analytics.sent[0].url, '/');
+});
+
+test('une campagne expirée est écartée avant la notification de changement de consentement', async (t) => {
+  const analytics = await setup(t, 'allowed', 500, '?' + linkedinQuery);
+  analytics.load();
+  t.mock.timers.tick(500);
+  analytics.trackAnalyticsEvent({ name: 'beta_open' });
+  assert.equal(analytics.sent.length, 1);
+
+  assert.equal(saveAnalyticsChoice('allowed'), true);
+  analytics.trackAnalyticsEvent({ name: 'beta_mailto' });
+  assert.equal(analytics.events()[0].url, '/');
+});
+
+test('une révocation inter-onglets ne transfère pas la campagne à une nouvelle génération', async (t) => {
+  for (const notifyBeforeLoad of [false, true]) {
+    await t.test(
+      notifyBeforeLoad ? 'notification avant chargement' : 'notification après chargement',
+      async (scenario) => {
+        const analytics = await setup(scenario, 'allowed', undefined, '?' + linkedinQuery);
+        const previous = readAnalyticsConsent();
+        analytics.trackAnalyticsEvent({ name: 'beta_open' });
+        assert.equal(saveAnalyticsChoice('refused'), true);
+        assert.equal(saveAnalyticsChoice('allowed'), true);
+
+        if (notifyBeforeLoad) analytics.discardQueuedConsent(previous.generation);
+        analytics.load();
+        if (!notifyBeforeLoad) analytics.discardQueuedConsent(previous.generation);
+        analytics.trackAnalyticsEvent({ name: 'beta_mailto' });
+
+        assert.deepEqual(
+          analytics.sent.map(({ name, url }) => [name, url]),
+          [
+            [undefined, '/'],
+            ['beta_mailto', '/']
+          ]
+        );
+      }
+    );
+  }
+});
+
+test('la navigation interne ne capture pas de campagne absente à l’arrivée', async (t) => {
+  const analytics = await setup(t, null);
+  location.search = '?' + linkedinQuery;
+  analytics.setAnalyticsPage('/confidentialite');
+  assert.equal(saveAnalyticsChoice('allowed'), true);
+  analytics.setAnalyticsConsent('allowed');
+  analytics.load();
+  assert.equal(analytics.sent[0].url, '/confidentialite/');
 });

@@ -50,7 +50,7 @@ Accueil
 
 Les vidéos commencent avec une affiche locale. L’accueil stocke le consentement et transmet `allowed` à `AdventureVideo.svelte`. Le composant décide ensuite quand charger un lecteur selon la visibilité, la préférence de mouvement et les actions de lecture. Le retrait démonte les lecteurs et recharge la page. `youtube.ts` arbitre les demandes simultanées.
 
-Le layout racine suit les changements de route pour Umami. `AnalyticsPreferences.svelte` gère le choix de mesure d’audience indépendamment des vidéos. `src/lib/analytics/` valide le choix et construit les données autorisées pour le traceur. Le [dossier Umami](UMAMI_ANALYTICS.md) décrit les événements, les vérifications et les points à valider avant publication.
+Le layout racine suit les changements de route pour Umami. `PrivacyPreferences.svelte` présente les deux choix indépendants dans un dialogue natif. Le contexte typé de `src/lib/preferences.ts` relie les commandes de l’accueil et la fin de l’introduction au layout. `src/lib/analytics/` valide le choix et construit les données autorisées pour le traceur. Le [dossier Umami](UMAMI_ANALYTICS.md) décrit les événements, les vérifications et les points à valider avant publication.
 
 ## Styles et ressources
 

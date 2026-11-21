@@ -1,3 +1,4 @@
+import { readCampaignQuery } from './campaign';
 import { readAnalyticsConsent, type AnalyticsChoice } from './consent';
 
 const siteOrigin = 'https://moko-islandevolution.com';
@@ -15,6 +16,7 @@ const sourceDomains = new Set([
   'google.com',
   'google.fr',
   'instagram.com',
+  'linkedin.com',
   'tiktok.com',
   'youtu.be',
   'youtube.com'
@@ -33,10 +35,14 @@ type Payload = {
   data?: { category: 'social' | 'portfolio' };
 };
 
+type TrackedPayload = Omit<Payload, 'url'> & {
+  url: AnalyticsRoute | `${AnalyticsRoute}?${string}`;
+};
+
 declare global {
   interface Window {
     umami?: { track: (payload: Payload) => Promise<void> | void };
-    mokoAnalyticsBeforeSend?: (type: string) => Payload | null;
+    mokoAnalyticsBeforeSend?: (type: string) => TrackedPayload | null;
   }
 }
 
@@ -46,6 +52,9 @@ let trackerReady = false;
 let currentPage: AnalyticsRoute | undefined;
 let lastPage: AnalyticsRoute | undefined;
 let pendingEvent: { payload: Payload; generation: string } | undefined;
+let landingRead = false;
+let campaignQuery: string | undefined;
+let campaignConsent: { generation: string; expiresAt: number } | undefined;
 const queuedEvents = new Map<
   Payload,
   { generation: string; expiresAt: number; timeout: ReturnType<typeof setTimeout> }
@@ -53,6 +62,17 @@ const queuedEvents = new Map<
 
 export function supportsAnalytics(): boolean {
   return import.meta.env.VITE_UMAMI_ENABLED === 'true' && location.origin === siteOrigin;
+}
+
+function captureLandingCampaign() {
+  if (landingRead || !supportsAnalytics()) return;
+  landingRead = true;
+  campaignQuery = readCampaignQuery(location.search);
+}
+
+function clearCampaign() {
+  campaignQuery = undefined;
+  campaignConsent = undefined;
 }
 
 function removeQueuedEvent(payload: Payload) {
@@ -63,6 +83,7 @@ function removeQueuedEvent(payload: Payload) {
 }
 
 export function discardQueuedConsent(generation: string) {
+  if (campaignConsent?.generation === generation) clearCampaign();
   for (const [payload, entry] of queuedEvents) {
     if (entry.generation === generation) removeQueuedEvent(payload);
   }
@@ -76,7 +97,20 @@ function clearQueuedEvents() {
 function activeConsent() {
   // Relire le choix avant chaque envoi, sans attendre la notification des autres onglets.
   const consent = allowed ? readAnalyticsConsent() : null;
-  if (consent?.choice === 'allowed') return consent;
+  if (
+    campaignConsent &&
+    (consent?.choice !== 'allowed' ||
+      consent.generation !== campaignConsent.generation ||
+      campaignConsent.expiresAt <= Date.now())
+  )
+    clearCampaign();
+
+  if (consent?.choice === 'allowed') {
+    if (campaignQuery && !campaignConsent) {
+      campaignConsent = { generation: consent.generation, expiresAt: consent.expiresAt };
+    }
+    return consent;
+  }
   clearQueuedEvents();
   return null;
 }
@@ -103,12 +137,18 @@ function flushQueuedEvents() {
   }
 }
 
-function beforeSend(type: string) {
+function beforeSend(type: string): TrackedPayload | null {
   if (type !== 'event' || !pendingEvent) return null;
   if (activeConsent()?.generation !== pendingEvent.generation) return null;
 
   const { payload } = pendingEvent;
   pendingEvent = undefined;
+  if (
+    campaignQuery &&
+    (!payload.name || payload.name === 'beta_open' || payload.name === 'beta_mailto')
+  ) {
+    return { ...payload, url: `${payload.url}?${campaignQuery}` };
+  }
   return payload;
 }
 
@@ -198,13 +238,16 @@ function trackPage() {
 }
 
 export function setAnalyticsPage(routeId: string | null) {
+  captureLandingCampaign();
   currentPage = publicRoutes.find((route) => route === routeId || route.slice(0, -1) === routeId);
   trackPage();
 }
 
 export function setAnalyticsConsent(choice: AnalyticsChoice | null) {
+  captureLandingCampaign();
   allowed = choice === 'allowed' && supportsAnalytics();
   if (!allowed) {
+    if (choice === 'refused' || campaignConsent) clearCampaign();
     lastPage = undefined;
     pendingEvent = undefined;
     clearQueuedEvents();
