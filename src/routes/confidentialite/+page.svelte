@@ -4,7 +4,13 @@
   import LanguageSwitcher from '../../lib/components/LanguageSwitcher.svelte';
   import { translations, type Language } from '../../lib/i18n';
   import { readPageLanguage, rememberPageLanguage } from '../../lib/page-language';
-  import { cnilComplaintUrl, privacyContact, privacyCopy } from '../../lib/privacy';
+  import {
+    cnilComplaintUrl,
+    privacyContact,
+    privacyCopy,
+    umamiDataAgreementUrl,
+    umamiSubprocessorsUrl
+  } from '../../lib/privacy';
 
   let language = $state<Language>('fr');
   const copy = $derived(privacyCopy[language]);
@@ -47,6 +53,17 @@
   <section>
     <h2>{copy.controllerTitle}</h2>
     <p>{copy.controller} <a href={`mailto:${privacyContact}`}>{privacyContact}</a>.</p>
+  </section>
+
+  <section>
+    <h2>{copy.analytics.title}</h2>
+    {#each copy.analytics.paragraphs as paragraph}
+      <p>{paragraph}</p>
+    {/each}
+    <ul>
+      <li><a href={umamiDataAgreementUrl}>{copy.analytics.agreement}</a></li>
+      <li><a href={umamiSubprocessorsUrl}>{copy.analytics.subprocessors}</a></li>
+    </ul>
   </section>
 
   {#each copy.sections as section}

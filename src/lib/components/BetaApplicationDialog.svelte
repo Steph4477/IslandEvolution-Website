@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { trackAnalyticsEvent } from '../analytics/umami';
   import {
     androidConfirmation,
     betaApplicationDestination,
@@ -78,6 +79,7 @@
     opener = trigger;
     dialog.showModal();
     closeButton.focus({ preventScroll: true });
+    trackAnalyticsEvent({ name: 'beta_open' });
   }
 
   function close() {
@@ -148,6 +150,7 @@
     const now = performance.now();
     if (!destination || now - lastLaunch < 1500) return;
     lastLaunch = now;
+    trackAnalyticsEvent({ name: 'beta_mailto' });
     window.location.assign(destination);
   }
 </script>

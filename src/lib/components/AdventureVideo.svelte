@@ -14,13 +14,15 @@
     poster,
     title,
     labels,
-    allowed
+    allowed,
+    onManualPlayback
   }: {
     id: string;
     poster: string;
     title: string;
     labels: { play: string; unavailable: string };
     allowed: boolean;
+    onManualPlayback?: () => void;
   } = $props();
 
   const threshold = 0.6;
@@ -44,11 +46,13 @@
     let requested = false;
     let manual = false;
     let manualOnly = false;
+    let pendingManualPlayback = false;
     let timeout: number | undefined;
 
     function pause() {
       const shouldPause = requested;
       requested = false;
+      pendingManualPlayback = false;
       releasePlayback(pause);
       if (shouldPause) player?.pauseVideo();
     }
@@ -120,10 +124,16 @@
                   manualOnly = false;
                 }
                 requested = true;
-                if (!canPlay() || !claimPlayback(pause, manual)) pause();
+                if (!canPlay() || !claimPlayback(pause, manual)) {
+                  pause();
+                } else if (pendingManualPlayback) {
+                  pendingManualPlayback = false;
+                  onManualPlayback?.();
+                }
               } else if (data === 0 || (data === 2 && requested)) {
                 manualOnly = true;
                 manual = false;
+                pendingManualPlayback = false;
                 requested = false;
                 releasePlayback(pause);
               }
@@ -132,6 +142,7 @@
               if (frame !== iframe) return;
               manualOnly = true;
               manual = false;
+              pendingManualPlayback = false;
               requested = false;
               releasePlayback(pause);
             },
@@ -148,6 +159,7 @@
     startManually = () => {
       manual = true;
       manualOnly = false;
+      pendingManualPlayback = true;
       ratio = Math.max(ratio, Number.EPSILON);
       if (status === 'error') status = 'idle';
       reconcile();

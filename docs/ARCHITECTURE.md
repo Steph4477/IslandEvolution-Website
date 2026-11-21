@@ -50,6 +50,8 @@ Accueil
 
 Les vidéos commencent avec une affiche locale. L’accueil stocke le consentement et transmet `allowed` à `AdventureVideo.svelte`. Le composant décide ensuite quand charger un lecteur selon la visibilité, la préférence de mouvement et les actions de lecture. Le retrait démonte les lecteurs et recharge la page. `youtube.ts` arbitre les demandes simultanées.
 
+Le layout racine suit les changements de route pour Umami. `AnalyticsPreferences.svelte` gère le choix de mesure d’audience indépendamment des vidéos. `src/lib/analytics/` valide le choix et construit les données autorisées pour le traceur. Le [dossier Umami](UMAMI_ANALYTICS.md) décrit les événements, les vérifications et les points à valider avant publication.
+
 ## Styles et ressources
 
 Les blocs `<style>` des composants utilisent le CSS natif. Svelte limite la portée des styles locaux. Les blocs `:global(...)` sont réservés aux sélecteurs qui touchent un élément extérieur à cette portée, comme l’iframe créée par l’API vidéo ou les boutons enfants de l’en-tête. Les requêtes `@media` définissent les variantes mobile et mouvement réduit. Les variables CSS transportent des positions calculées. Utiliser `asset(...)` de `$app/paths` pour référencer une ressource publique avec le préfixe Pages.

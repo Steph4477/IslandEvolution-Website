@@ -1,6 +1,7 @@
 <script lang="ts">
   import { flushSync, onMount, tick } from 'svelte';
   import { asset, resolve } from '$app/paths';
+  import { trackAnalyticsEvent } from '../lib/analytics/umami';
   import {
     descriptions,
     siteName,
@@ -333,6 +334,7 @@
               poster={asset('video/adventure.jpg')}
               labels={copy.adventure}
               allowed={videosAllowed}
+              onManualPlayback={() => trackAnalyticsEvent({ name: 'teaser_play' })}
             />
             {#if videoConsent === null}
               <div class="video-consent-panel">
@@ -468,12 +470,14 @@
         href="https://www.tiktok.com/@islandevolution2d"
         target="_blank"
         rel="noopener noreferrer"
+        onclick={() => trackAnalyticsEvent({ name: 'external_link', category: 'social' })}
         aria-label={copy.socialLinks.tiktok}>TikTok</a
       >
       <a
         href="https://www.youtube.com/@stephanemorel3306"
         target="_blank"
         rel="noopener noreferrer"
+        onclick={() => trackAnalyticsEvent({ name: 'external_link', category: 'social' })}
         aria-label={copy.socialLinks.youtube}
       >
         <img
