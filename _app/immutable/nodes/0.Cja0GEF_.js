@@ -1,1 +1,0 @@
-import{B as e,C as t,S as n,_ as r}from"../chunks/DLCFg-tl.js";function i(i,a){var o=t(),s=e(o);r(s,()=>a.children),n(i,o)}export{i as component};
